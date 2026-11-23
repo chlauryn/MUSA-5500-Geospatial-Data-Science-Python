@@ -150,7 +150,7 @@ GeoPandas version: 1.1.3</code></pre>
 </section>
 <section id="data-gathering-and-cleaning" class="level2">
 <h2 class="anchored" data-anchor-id="data-gathering-and-cleaning">2. Data gathering and cleaning</h2>
-<p>We will obtain the</p>
+<p>I will obtain the</p>
 <ol type="1">
 <li><p>Singapore main island boundary dataset from the 2025 Masterplan, calling an API from <a href="https://data.gov.sg/datasets?formats=GEOJSON%7CKML%7CSHP%7CKMZ&amp;sort=relevancy&amp;query=singapore+boundary&amp;resultId=d_2cc750190544007400b2cfd5d7f53209">data.gov.sg</a>.</p></li>
 <li><p>Point data of nightlife establishments from OSM.</p></li>
@@ -351,7 +351,7 @@ GeoPandas version: 1.1.3</code></pre>
 <li><p>93203: night clubs, discotheques, dance clubs, and karaoke lounges</p></li>
 <li><p>93202: game arcade, online game aggregator, LAN game operators and gaming centres</p></li>
 </ol>
-<p>Data points are extracted from OSM using a list of values from keys like “amenity”, and clipped using the Singapore boundary we sourced above.</p>
+<p>Data points are extracted from OSM using a list of values from keys like “amenity”, and clipped using the Singapore boundary I sourced above.</p>
 <div id="cell-12" class="cell" data-execution_count="16">
 <details class="code-fold">
 <summary>Show code</summary>
@@ -419,7 +419,7 @@ Length: 3, dtype: str</code></pre>
 </div>
 </div>
 <p><strong>Data wrangling</strong></p>
-<p>Upon inspection of the values within the amenity and leisure keys, Theatres and Cafes were included which we do not want in our nightlife dataset. They were probably accidentally included due to adding a “karaoke” tag to our call to capture karaoke bars. We will filter them out from our Geodataframe.</p>
+<p>Upon inspection of the values within the amenity and leisure keys, Theatres and Cafes were included which we do not want in our nightlife dataset. They were probably accidentally included due to adding a “karaoke” tag to our call to capture karaoke bars. I will filter them out from our Geodataframe.</p>
 <div id="cell-16" class="cell" data-execution_count="23">
 <details class="code-fold">
 <summary>Show code</summary>
@@ -489,7 +489,7 @@ Name: count, dtype: int64</code></pre>
 </section>
 <section id="visualization" class="level2">
 <h2 class="anchored" data-anchor-id="visualization">3. Visualization</h2>
-<p>We now investigate the types of nightlife venues, their operating hours and their spatial distribution.</p>
+<p>I now investigate the types of nightlife venues, their operating hours and their spatial distribution.</p>
 <div id="cell-19" class="cell" data-execution_count="27">
 <details class="code-fold">
 <summary>Show code</summary>
@@ -649,7 +649,9 @@ Name: count, dtype: int64</code></pre>
 </div>
 </div>
 </div>
-<div id="cell-21" class="cell" data-scrolled="true" data-execution_count="26">
+<p><em>While arcade operating hours follow a very different temporal pattern from bars/clubs, I thought it was important to include because it still does comprise evening social scenes in Singapore.</em></p>
+<p>Pubs/bars and nightclubs/dance/karaoke surprsingly seem to open quite early from 3pm, with half already being open throughout the day. It seems most of nightlife venues in Singapore are not exclusive to the night.</p>
+<div id="cell-22" class="cell" data-scrolled="true" data-execution_count="26">
 <details class="code-fold">
 <summary>Show code</summary>
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb20"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb20-1"><a href="#cb20-1" aria-hidden="true" tabindex="-1"></a><span class="co"># ensure clean text values for hover tooltips</span></span>
@@ -10809,7 +10811,7 @@ Name: count, dtype: int64</code></pre>
 </html>" style="position:absolute;width:100%;height:100%;left:0;top:0;border:none !important;" allowfullscreen="" webkitallowfullscreen="" mozallowfullscreen=""></iframe></div></div>
 </div>
 </div>
-<div id="cell-22" class="cell" data-execution_count="32">
+<div id="cell-23" class="cell" data-execution_count="32">
 <details class="code-fold">
 <summary>Show code</summary>
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb21"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb21-1"><a href="#cb21-1" aria-hidden="true" tabindex="-1"></a><span class="co"># filter to venues operating during post-midnight hours (12am to 5am)</span></span>
@@ -11688,8 +11690,8 @@ Name: count, dtype: int64</code></pre>
 </section>
 <section id="clustering-analysis-using-dbscan" class="level2">
 <h2 class="anchored" data-anchor-id="clustering-analysis-using-dbscan">4. Clustering analysis using DBSCAN</h2>
-<p>I used DBSCAN clustering to determine the hotspots of nightlife in Singapore. Since there are 620 total recorded venues, and they are quite concentrated, we define epsilon as 250m (3-min walk) and min_samples as 8 to capture distinct nightlife districts without merging areas together.</p>
-<div id="cell-25" class="cell" data-execution_count="36">
+<p>I used DBSCAN clustering to determine the hotspots of nightlife in Singapore. Since there are 620 total recorded venues, and they are quite concentrated, I define epsilon as 250m (3-min walk) and min_samples as 8 to capture distinct nightlife districts without merging areas together.</p>
+<div id="cell-26" class="cell" data-execution_count="36">
 <details class="code-fold">
 <summary>Show code</summary>
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb22"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb22-1"><a href="#cb22-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> sklearn.cluster <span class="im">import</span> dbscan</span>
@@ -22315,7 +22317,7 @@ Total clustered venues: 378 / 620 (61.0%)</code></pre>
 <p>Noise points constitute 40% (242 out of 620) of all venues, suggesting both high clustering and high dispersion outside of Central Singapore.</p>
 <hr>
 <p>Our exploration highlights the existing spatial and temporal nightlife scene in Singapore, which raises a key question about late-night accessibility when Singapore’s MRT and bus services shut down at midnight. In Section 2, we will examine how well these nightlife clusters and dispersed venues are servied by public transit infrastructure.</p>
-<div id="cell-27" class="cell" data-execution_count="42">
+<div id="cell-28" class="cell" data-execution_count="42">
 <details class="code-fold">
 <summary>Show code</summary>
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb24"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb24-1"><a href="#cb24-1" aria-hidden="true" tabindex="-1"></a><span class="co"># for further analysis in Section 3</span></span>
