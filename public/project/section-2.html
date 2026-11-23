@@ -107,10 +107,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </header>
 
 
-<ol start="3" type="1">
-<li>Point data of MRT stations/bus stops near the establishments (walking-network buffer zone using OSMnx)  compute average walking distance</li>
-<li>Line graph of passenger volume for these transport nodes, for Origin vs Destination, over time (could potentially compare with opening/closing times of businesses)</li>
-</ol>
+<p>This section will extract point data of MRT stations and Bus stops in Singapore from Land Transport Authority (LTA) Datamall and explore its spatial patterns. Network analysis will be performed using OSMnx to identify the walking distance from nightlife venues to the nearest transit node.</p>
 <section id="set-up-environment" class="level1">
 <h1>1. Set up environment</h1>
 <div id="cell-3" class="cell" data-execution_count="1">
@@ -165,7 +162,7 @@ GeoPandas version: 1.1.3</code></pre>
 </section>
 <section id="b.-load-point-data-of-bus-stops" class="level2">
 <h2 class="anchored" data-anchor-id="b.-load-point-data-of-bus-stops">2b. Load point data of bus stops</h2>
-<p>The data was sourced from <a href="https://datamall.lta.gov.sg/content/datamall/en/static-data.html">LTA Datamall</a>. The shapefile was downloaded directly into the repository.</p>
+<p>The data was sourced from the static dataset folder in <a href="https://datamall.lta.gov.sg/content/datamall/en/static-data.html">LTA Datamall</a>. The shapefiles was downloaded directly into my Github repository.</p>
 <div id="cell-7" class="cell" data-execution_count="67">
 <details class="code-fold">
 <summary>Show code</summary>
@@ -188,7 +185,8 @@ GeoPandas version: 1.1.3</code></pre>
 </div>
 </div>
 </div>
-<p>There are some bus stops outside of the main island (i.e.&nbsp;in Malaysia) that will need to be filtered out.</p>
+<p><strong>Data wrangling</strong></p>
+<p>There are some bus stops outside of the main island (i.e.&nbsp;in Malaysia) that will need to be filtered out using the Singapore boundary dataset we sourced in Section 1.</p>
 <div id="cell-10" class="cell" data-execution_count="70">
 <details class="code-fold">
 <summary>Show code</summary>
@@ -83613,7 +83611,8 @@ bus stops within main island: 5,197</code></pre>
 </div>
 </div>
 </div>
-<p>Upon pre-investigation in QGIS, the MRT dataset are polygons and contain repeated entries of the interchange stations with multiple lines/station codes. For example, Bugis interchange station (DT14/EW12) is part of both the Downtown (DT) line and East-West (EW) line and have two polygons drawn adjacent to each other. To convert this into simplified point data, the touching polygons will be combined into one, and the centroid of all polygons are taken as the location of the MRT station.</p>
+<p><strong>Troubleshooting</strong></p>
+<p>Upon pre-investigation in QGIS, the MRT dataset are polygons and contain repeated entries of the interchange stations with multiple lines/station codes. For example, Bugis interchange station (DT14/EW12) is part of both the Downtown (DT) line and East-West (EW) line and have two polygons drawn adjacent to each other. To convert this into simplified point data, the touching polygons will be merged into one, and the centroid of the final polygons are taken as the location of the MRT station.</p>
 <div id="cell-16" class="cell" data-scrolled="true" data-execution_count="20">
 <details class="code-fold">
 <summary>Show code</summary>
@@ -83991,7 +83990,11 @@ interchange stations merged: 25</code></pre>
 </div>
 </div>
 </div>
-<p>There are 201 observations which is more than the number of MRT/LRT stations in Singapore. Further investigation through QGIS shows that there are some depots included in the list that are not accessible to the public. They will be removed by filtering out any observations where the station_code does not include a number.</p>
+<p><strong>Data wrangling</strong></p>
+<p>To merge the polygons at each interchange, a 1m buffer is first placed to ensure the adjacent polygons intersect each other, and then merged using predicate = “intersects”. The station names STN_NAM for these interchanges with multiple intersecting lines are combined into a new column called “station_code”. Same thing for station lines LIN_NAM into line_name.</p>
+<hr>
+<p><strong>More troubleshooting</strong></p>
+<p>There are 201 observations which is more than the number of MRT/LRT stations in Singapore. Further investigation through QGIS shows that there are some depots included in the list that are not accessible to the public. They will be removed by filtering out any observations where the station_code does not include a number (this means they are not part of an existing MRT line). We can see such stations below. They all have station codes that are indecipherable.</p>
 <div id="cell-20" class="cell" data-scrolled="true" data-execution_count="52">
 <details class="code-fold">
 <summary>Show code</summary>
@@ -84096,7 +84099,8 @@ valid public mrt/lrt stations remaining: 190</code></pre>
 </div>
 </div>
 </div>
-<p>There are 190 stations even though there are only 184 operational stations currently. Upon further investigation, I found out that this is because the dataset includes some reserved stations that are under construction/have not been opened yet (e.g.&nbsp;CC18 Bukit Brown, CC30 Keppel).</p>
+<p><strong>Data wrangling</strong></p>
+<p>There are 190 stations even though there are only 184 operational stations currently. Upon further investigation, I found out that this is because the dataset includes some reserved stations that are under construction/have not been opened yet (e.g.&nbsp;CC18 Bukit Brown, CC30 Keppel). The list of upcoming stations was verified by checking the <a href="https://www.lta.gov.sg/content/ltagov/en/upcoming_projects.html">Upcoming Projects</a> webpage published by LTA: 1. CC18 2. CC30 3. CC31 4. CC32 5. TE21 6. TE22A</p>
 <p>They will need to be removed to assess current accessibility for transit users.</p>
 <div id="cell-22" class="cell" data-execution_count="53">
 <details class="code-fold">
@@ -87511,7 +87515,9 @@ Requirement already satisfied: certifi&gt;=2023.5.7 in C:\Users\laury\OneDrive -
 ../../data/transit.osm 3.4 MB</code></pre>
 </div>
 </div>
-<div id="cell-31" class="cell" data-execution_count="102">
+<p><strong>Data wrangling</strong></p>
+<p>Now that the osm file has been downloaded, a NetworkX MultiDiGraph can be created. Only walkable network will be kept by filtering out vehicular values in OSM such as “motorway” and “construction”.</p>
+<div id="cell-32" class="cell" data-execution_count="102">
 <details class="code-fold">
 <summary>Show code</summary>
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb29"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb29-1"><a href="#cb29-1" aria-hidden="true" tabindex="-1"></a>graph_path <span class="op">=</span> <span class="st">"../../data/nightlife_walk.graphml"</span></span>
@@ -87552,7 +87558,11 @@ Requirement already satisfied: certifi&gt;=2023.5.7 in C:\Users\laury\OneDrive -
 <pre><code>Walkable Graph Ready — Nodes: 121,091 | Edges: 330,354</code></pre>
 </div>
 </div>
-<div id="cell-32" class="cell" data-scrolled="true" data-execution_count="103">
+</section>
+<section id="b.-network-analysis-aggregated" class="level2">
+<h2 class="anchored" data-anchor-id="b.-network-analysis-aggregated">3b. Network analysis, aggregated</h2>
+<p>We now describe the summary statistics for the walking distance from nightlife venues to the nearest transit node. This will be done by snapping the nightlife points to the nearest network node, and then computing the distance from this snapped point to the nearest MRT/bus station.</p>
+<div id="cell-34" class="cell" data-scrolled="true" data-execution_count="103">
 <details class="code-fold">
 <summary>Show code</summary>
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb31"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb31-1"><a href="#cb31-1" aria-hidden="true" tabindex="-1"></a><span class="co"># load cleaned layers in SVY21 (EPSG:3414)</span></span>
@@ -87567,7 +87577,7 @@ Requirement already satisfied: certifi&gt;=2023.5.7 in C:\Users\laury\OneDrive -
 <span id="cb31-10"><a href="#cb31-10" aria-hidden="true" tabindex="-1"></a>mrt_nodes <span class="op">=</span> <span class="bu">set</span>(ox.nearest_nodes(G_proj, mrt_svy21.geometry.x, mrt_svy21.geometry.y))</span>
 <span id="cb31-11"><a href="#cb31-11" aria-hidden="true" tabindex="-1"></a>bus_nodes <span class="op">=</span> <span class="bu">set</span>(ox.nearest_nodes(G_proj, bus_svy21.geometry.x, bus_svy21.geometry.y))</span>
 <span id="cb31-12"><a href="#cb31-12" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb31-13"><a href="#cb31-13" aria-hidden="true" tabindex="-1"></a><span class="co"># reverse graph so Dijkstra computes distance from every node -&gt; nearest transit stop</span></span>
+<span id="cb31-13"><a href="#cb31-13" aria-hidden="true" tabindex="-1"></a><span class="co"># reverse graph so Dijkstra computes distance from every node --&gt; nearest transit stop</span></span>
 <span id="cb31-14"><a href="#cb31-14" aria-hidden="true" tabindex="-1"></a>G_rev <span class="op">=</span> G_proj.reverse(copy<span class="op">=</span><span class="va">False</span>)</span>
 <span id="cb31-15"><a href="#cb31-15" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb31-16"><a href="#cb31-16" aria-hidden="true" tabindex="-1"></a>dist_to_mrt <span class="op">=</span> nx.multi_source_dijkstra_path_length(G_rev, sources<span class="op">=</span>mrt_nodes, weight<span class="op">=</span><span class="st">"length"</span>)</span>
@@ -87654,8 +87664,12 @@ Unreached Bus count (NaN): 5</code></pre>
 </div>
 </div>
 <p>Overall, the average walking distance to an MRT is 491min, which is about 6mins. That of buses is 126m, which is about 2min and very close by! It is similar to the Land Transport Authority target for amenities to be within a 400m radius to MRTs and 200m radius to bus stops, which indicates good connectivity.</p>
+<p>The snapped distance shows that the network analysis is a generally good proxy for walking distance, with the snap distance ranging from 0 to 78m which is quite a negligible difference between the actual point location and the snapped location. A larger snap distance probably indicates that the venue is located within a large mall/venue that is quite far away from the nearest network node.</p>
 <p>There are 11 nightlife venues displaying an unreached MRT count, and 5 venues displaying an unreached bus count. This means that they are beyond the 1000m geometry.buffer from the nearest transit station. The buffer should have been expanded slightly to account for this but for computational efficiency the 1000m buffer is kept. However, it does indicate that there are some venues quite inaccessibly by public transport (&gt;1km away).</p>
-<div id="cell-34" class="cell" data-execution_count="107">
+</section>
+<section id="c.-network-analysis-per-venue" class="level2">
+<h2 class="anchored" data-anchor-id="c.-network-analysis-per-venue">3c. Network analysis per venue</h2>
+<div id="cell-37" class="cell" data-execution_count="107">
 <details class="code-fold">
 <summary>Show code</summary>
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb33"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb33-1"><a href="#cb33-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> folium</span>
@@ -107854,6 +107868,17 @@ Unreached Bus count (NaN): 5</code></pre>
 <li>Tiger Tavern: Tuas, a sprawling industrial hub with low pedestrian foot traffic and hence low public transport demand, catering more towards large freight trucks. It is surprising that there is a pub there - but further investigation shows that it used to be a tasting bar for the Tiger Beer Brewery tour, located within the brewery complex, which justifies why it is in an industrial area (now it is closed, though).</li>
 <li>Chang Chewang: Mandai Nature Reserve is a protected nature reserve where low transit accessibility is intentional.</li>
 </ul>
+<hr>
+<p>Our exploration highlights the accessibility of nightlife venues to public transport nodes, which indicates generally good accessibility. However beyond spatial accessibility, their temporal accessibility is limited due to MRT/bus closure times.</p>
+<p>In Section 3, I will examine where nightlife patrons are going (using Origin-Destination datasets) and how they can be better served at night.</p>
+<div id="cell-40" class="cell" data-execution_count="110">
+<details class="code-fold">
+<summary>Show code</summary>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb34"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb34-1"><a href="#cb34-1" aria-hidden="true" tabindex="-1"></a><span class="co"># for further analysis in section 3</span></span>
+<span id="cb34-2"><a href="#cb34-2" aria-hidden="true" tabindex="-1"></a><span class="co"># keep venues distance to nearest mrt/bus just in case</span></span>
+<span id="cb34-3"><a href="#cb34-3" aria-hidden="true" tabindex="-1"></a>venues_svy21.to_file(<span class="st">"../../data/nightlife_venues_walk.geojson"</span>, driver<span class="op">=</span><span class="st">"GeoJSON"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</details>
+</div>
 </section>
 </section>
 </section>
