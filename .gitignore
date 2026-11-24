@@ -32,3 +32,6 @@ data/*.graphml
 **/.ipynb_checkpoints/
 
 public/project/cache/
+
+/.quarto/
+**/*.quarto_ipynb

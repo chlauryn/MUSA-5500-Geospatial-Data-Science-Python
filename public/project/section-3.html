@@ -1386,7 +1386,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </div>
 </div>
 <p><strong>Troubleshooting</strong></p>
-<p>So there’s a few issues: because of the cluster shapes/the far distance of clusters from MRTs, only Clusters 1 and 6 have MRT stations within the cluster. Mapping our O-D flows based on this existing list of MRTs is not sufficient to capture patterns for all nightlife districts we identified.</p>
+<p>So there’s a few issues: because of the cluster shapes/the far distance of clusters from MRTs, only Clusters 0, 1 and 6 have MRT stations within the cluster. Mapping our O-D flows based on this existing list of MRTs is not sufficient to capture patterns for all nightlife districts we identified.</p>
 <p>Therefore for these remaining clusters, we will need to use the OSM network to extract at least 1 MRT station per cluster, that is nearest to the cluster.</p>
 <div id="cell-9" class="cell" data-execution_count="24">
 <details class="code-fold">
@@ -2856,7 +2856,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </ol>
 <p>Ideally I would like to include more months but for computational efficiency we will keep to October 2026.</p>
 <hr>
-<p><strong>Pulling the API</strong></p>
+<p><strong>Pulling the API from <a href="https://datamall.lta.gov.sg/content/datamall/en/dynamic-data.html">LTA Datamall Dynamic Dataset folder</a></strong></p>
 <p>Following the instructions in the User Guide, I first downloaded Postman and pasted in the URL and my API Key for this dataset. It gave me the relevant code I needed to put in Python. Then, I filtered according to the 3 conditions I made above.</p>
 <p>It is important to note that my station code names (especially for the tricky interchanges) in <code>nightlife_mrt_expanded</code> match that of the O-D dataset that I pull via an API. From the <a href="https://datamall.lta.gov.sg/content/dam/datamall/datasets/LTA_DataMall_API_User_Guide.pdf">API User Guide</a>, we can see the syntax lists examples for ORIGIN_PT_CODE as CC1-NE6-NS24. However, in my station_code column of <code>nightlife_mrt_expanded</code>, it could be formatted as CC1 / NE6 / NS24, or even in a different order like NS24 / CC1 / NE6. To fix this, we will extract the first station code (every letter before the first ” ” space), and make sure it is <strong>within</strong> ORIGIN_PT_CODE in the dataset.</p>
 <div id="cell-14" class="cell" data-execution_count="33">
@@ -2865,83 +2865,90 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb9"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> zipfile</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </details>
 </div>
-<div id="cell-15" class="cell" data-execution_count="34">
+<div id="cell-15" class="cell" data-execution_count="56">
 <details class="code-fold">
 <summary>Show code</summary>
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb10"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a>url <span class="op">=</span> <span class="st">"https://datamall2.mytransport.sg/ltaodataservice/PV/ODTrain"</span></span>
-<span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a>headers <span class="op">=</span> {</span>
-<span id="cb10-3"><a href="#cb10-3" aria-hidden="true" tabindex="-1"></a>    <span class="st">"AccountKey"</span>: <span class="st">"5T3ilXc2SUuuJPUtXHvpOw=="</span></span>
-<span id="cb10-4"><a href="#cb10-4" aria-hidden="true" tabindex="-1"></a>}</span>
-<span id="cb10-5"><a href="#cb10-5" aria-hidden="true" tabindex="-1"></a>params <span class="op">=</span> {</span>
-<span id="cb10-6"><a href="#cb10-6" aria-hidden="true" tabindex="-1"></a>    <span class="st">"Date"</span>: <span class="st">"202610"</span></span>
-<span id="cb10-7"><a href="#cb10-7" aria-hidden="true" tabindex="-1"></a>}</span>
-<span id="cb10-8"><a href="#cb10-8" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb10-9"><a href="#cb10-9" aria-hidden="true" tabindex="-1"></a>response <span class="op">=</span> requests.get(url, headers<span class="op">=</span>headers, params<span class="op">=</span>params)</span>
-<span id="cb10-10"><a href="#cb10-10" aria-hidden="true" tabindex="-1"></a>response.raise_for_status()</span>
-<span id="cb10-11"><a href="#cb10-11" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb10-12"><a href="#cb10-12" aria-hidden="true" tabindex="-1"></a>download_link <span class="op">=</span> response.json()[<span class="st">"value"</span>][<span class="dv">0</span>][<span class="st">"Link"</span>]</span>
-<span id="cb10-13"><a href="#cb10-13" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb10-14"><a href="#cb10-14" aria-hidden="true" tabindex="-1"></a><span class="co"># download and extract the zipped CSV in memory</span></span>
-<span id="cb10-15"><a href="#cb10-15" aria-hidden="true" tabindex="-1"></a>zip_response <span class="op">=</span> requests.get(download_link)</span>
-<span id="cb10-16"><a href="#cb10-16" aria-hidden="true" tabindex="-1"></a>zip_response.raise_for_status()</span>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb10"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a>api_key <span class="op">=</span> os.environ.get(<span class="st">"LTA_API_KEY"</span>, <span class="st">""</span>).strip()</span>
+<span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a><span class="cf">if</span> <span class="kw">not</span> api_key:</span>
+<span id="cb10-3"><a href="#cb10-3" aria-hidden="true" tabindex="-1"></a>    api_key <span class="op">=</span> getpass(<span class="st">"LTA DataMall API key (hidden): "</span>).strip()</span>
+<span id="cb10-4"><a href="#cb10-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-5"><a href="#cb10-5" aria-hidden="true" tabindex="-1"></a>url <span class="op">=</span> <span class="st">"https://datamall2.mytransport.sg/ltaodataservice/PV/ODTrain"</span></span>
+<span id="cb10-6"><a href="#cb10-6" aria-hidden="true" tabindex="-1"></a>headers <span class="op">=</span> {</span>
+<span id="cb10-7"><a href="#cb10-7" aria-hidden="true" tabindex="-1"></a>    <span class="st">"AccountKey"</span>: api_key</span>
+<span id="cb10-8"><a href="#cb10-8" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb10-9"><a href="#cb10-9" aria-hidden="true" tabindex="-1"></a>params <span class="op">=</span> {</span>
+<span id="cb10-10"><a href="#cb10-10" aria-hidden="true" tabindex="-1"></a>    <span class="st">"Date"</span>: <span class="st">"202610"</span></span>
+<span id="cb10-11"><a href="#cb10-11" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb10-12"><a href="#cb10-12" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-13"><a href="#cb10-13" aria-hidden="true" tabindex="-1"></a>response <span class="op">=</span> requests.get(url, headers<span class="op">=</span>headers, params<span class="op">=</span>params)</span>
+<span id="cb10-14"><a href="#cb10-14" aria-hidden="true" tabindex="-1"></a>response.raise_for_status()</span>
+<span id="cb10-15"><a href="#cb10-15" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-16"><a href="#cb10-16" aria-hidden="true" tabindex="-1"></a>download_link <span class="op">=</span> response.json()[<span class="st">"value"</span>][<span class="dv">0</span>][<span class="st">"Link"</span>]</span>
 <span id="cb10-17"><a href="#cb10-17" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb10-18"><a href="#cb10-18" aria-hidden="true" tabindex="-1"></a><span class="cf">with</span> zipfile.ZipFile(io.BytesIO(zip_response.content)) <span class="im">as</span> zf:</span>
-<span id="cb10-19"><a href="#cb10-19" aria-hidden="true" tabindex="-1"></a>    csv_filename <span class="op">=</span> zf.namelist()[<span class="dv">0</span>]</span>
-<span id="cb10-20"><a href="#cb10-20" aria-hidden="true" tabindex="-1"></a>    <span class="cf">with</span> zf.<span class="bu">open</span>(csv_filename) <span class="im">as</span> f:</span>
-<span id="cb10-21"><a href="#cb10-21" aria-hidden="true" tabindex="-1"></a>        od_train_raw <span class="op">=</span> pd.read_csv(f)</span>
-<span id="cb10-22"><a href="#cb10-22" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb10-23"><a href="#cb10-23" aria-hidden="true" tabindex="-1"></a><span class="co"># standardize column names and whitespace</span></span>
-<span id="cb10-24"><a href="#cb10-24" aria-hidden="true" tabindex="-1"></a>od_train_raw.columns <span class="op">=</span> od_train_raw.columns.<span class="bu">str</span>.strip()</span>
-<span id="cb10-25"><a href="#cb10-25" aria-hidden="true" tabindex="-1"></a>od_train_raw[<span class="st">"ORIGIN_PT_CODE"</span>] <span class="op">=</span> od_train_raw[<span class="st">"ORIGIN_PT_CODE"</span>].astype(<span class="bu">str</span>).<span class="bu">str</span>.strip()</span>
-<span id="cb10-26"><a href="#cb10-26" aria-hidden="true" tabindex="-1"></a>od_train_raw[<span class="st">"DESTINATION_PT_CODE"</span>] <span class="op">=</span> od_train_raw[<span class="st">"DESTINATION_PT_CODE"</span>].astype(<span class="bu">str</span>).<span class="bu">str</span>.strip()</span>
-<span id="cb10-27"><a href="#cb10-27" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb10-28"><a href="#cb10-28" aria-hidden="true" tabindex="-1"></a><span class="co"># extract the first station code (everything before the first space) from nightlife_mrt_expanded</span></span>
-<span id="cb10-29"><a href="#cb10-29" aria-hidden="true" tabindex="-1"></a>nightlife_mrt_expanded[<span class="st">"first_code"</span>] <span class="op">=</span> (</span>
-<span id="cb10-30"><a href="#cb10-30" aria-hidden="true" tabindex="-1"></a>    nightlife_mrt_expanded[<span class="st">"station_code"</span>]</span>
-<span id="cb10-31"><a href="#cb10-31" aria-hidden="true" tabindex="-1"></a>    .astype(<span class="bu">str</span>)</span>
-<span id="cb10-32"><a href="#cb10-32" aria-hidden="true" tabindex="-1"></a>    .<span class="bu">str</span>.strip()</span>
-<span id="cb10-33"><a href="#cb10-33" aria-hidden="true" tabindex="-1"></a>    .<span class="bu">str</span>.split(<span class="st">" "</span>)</span>
-<span id="cb10-34"><a href="#cb10-34" aria-hidden="true" tabindex="-1"></a>    .<span class="bu">str</span>[<span class="dv">0</span>]</span>
-<span id="cb10-35"><a href="#cb10-35" aria-hidden="true" tabindex="-1"></a>)</span>
-<span id="cb10-36"><a href="#cb10-36" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb10-37"><a href="#cb10-37" aria-hidden="true" tabindex="-1"></a><span class="co"># build a lookup dictionary mapping each station's first_code to its cluster_id</span></span>
-<span id="cb10-38"><a href="#cb10-38" aria-hidden="true" tabindex="-1"></a>code_to_cluster <span class="op">=</span> <span class="bu">dict</span>(</span>
-<span id="cb10-39"><a href="#cb10-39" aria-hidden="true" tabindex="-1"></a>    <span class="bu">zip</span>(nightlife_mrt_expanded[<span class="st">"first_code"</span>], nightlife_mrt_expanded[<span class="st">"cluster_id"</span>])</span>
-<span id="cb10-40"><a href="#cb10-40" aria-hidden="true" tabindex="-1"></a>)</span>
-<span id="cb10-41"><a href="#cb10-41" aria-hidden="true" tabindex="-1"></a>target_codes <span class="op">=</span> <span class="bu">set</span>(code_to_cluster.keys())</span>
-<span id="cb10-42"><a href="#cb10-42" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb10-43"><a href="#cb10-43" aria-hidden="true" tabindex="-1"></a><span class="co"># match first_code against dash-separated tokens in ORIGIN_PT_CODE (e.g., "CC1" in ["CC1", "NE6", "NS24"])</span></span>
-<span id="cb10-44"><a href="#cb10-44" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> match_cluster_id(od_code_str):</span>
-<span id="cb10-45"><a href="#cb10-45" aria-hidden="true" tabindex="-1"></a>    tokens <span class="op">=</span> od_code_str.split(<span class="st">"-"</span>)</span>
-<span id="cb10-46"><a href="#cb10-46" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> token <span class="kw">in</span> tokens:</span>
-<span id="cb10-47"><a href="#cb10-47" aria-hidden="true" tabindex="-1"></a>        <span class="cf">if</span> token <span class="kw">in</span> code_to_cluster:</span>
-<span id="cb10-48"><a href="#cb10-48" aria-hidden="true" tabindex="-1"></a>            <span class="cf">return</span> code_to_cluster[token]</span>
-<span id="cb10-49"><a href="#cb10-49" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> <span class="va">None</span></span>
-<span id="cb10-50"><a href="#cb10-50" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb10-51"><a href="#cb10-51" aria-hidden="true" tabindex="-1"></a><span class="co"># filter for October 2026 and nightlife origin stations</span></span>
-<span id="cb10-52"><a href="#cb10-52" aria-hidden="true" tabindex="-1"></a>od_oct_origins <span class="op">=</span> od_train_raw[</span>
-<span id="cb10-53"><a href="#cb10-53" aria-hidden="true" tabindex="-1"></a>    od_train_raw[<span class="st">"YEAR_MONTH"</span>] <span class="op">==</span> <span class="st">"2026-10"</span></span>
-<span id="cb10-54"><a href="#cb10-54" aria-hidden="true" tabindex="-1"></a>].copy()</span>
-<span id="cb10-55"><a href="#cb10-55" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb10-56"><a href="#cb10-56" aria-hidden="true" tabindex="-1"></a>od_oct_origins[<span class="st">"origin_cluster_id"</span>] <span class="op">=</span> od_oct_origins[<span class="st">"ORIGIN_PT_CODE"</span>].<span class="bu">apply</span>(match_cluster_id)</span>
-<span id="cb10-57"><a href="#cb10-57" aria-hidden="true" tabindex="-1"></a>od_oct_origins <span class="op">=</span> od_oct_origins.dropna(subset<span class="op">=</span>[<span class="st">"origin_cluster_id"</span>]).copy()</span>
-<span id="cb10-58"><a href="#cb10-58" aria-hidden="true" tabindex="-1"></a>od_oct_origins[<span class="st">"origin_cluster_id"</span>] <span class="op">=</span> od_oct_origins[<span class="st">"origin_cluster_id"</span>].astype(<span class="bu">int</span>)</span>
+<span id="cb10-18"><a href="#cb10-18" aria-hidden="true" tabindex="-1"></a><span class="co"># download and extract the zipped CSV in memory</span></span>
+<span id="cb10-19"><a href="#cb10-19" aria-hidden="true" tabindex="-1"></a>zip_response <span class="op">=</span> requests.get(download_link)</span>
+<span id="cb10-20"><a href="#cb10-20" aria-hidden="true" tabindex="-1"></a>zip_response.raise_for_status()</span>
+<span id="cb10-21"><a href="#cb10-21" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-22"><a href="#cb10-22" aria-hidden="true" tabindex="-1"></a><span class="cf">with</span> zipfile.ZipFile(io.BytesIO(zip_response.content)) <span class="im">as</span> zf:</span>
+<span id="cb10-23"><a href="#cb10-23" aria-hidden="true" tabindex="-1"></a>    csv_filename <span class="op">=</span> zf.namelist()[<span class="dv">0</span>]</span>
+<span id="cb10-24"><a href="#cb10-24" aria-hidden="true" tabindex="-1"></a>    <span class="cf">with</span> zf.<span class="bu">open</span>(csv_filename) <span class="im">as</span> f:</span>
+<span id="cb10-25"><a href="#cb10-25" aria-hidden="true" tabindex="-1"></a>        od_train_raw <span class="op">=</span> pd.read_csv(f)</span>
+<span id="cb10-26"><a href="#cb10-26" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-27"><a href="#cb10-27" aria-hidden="true" tabindex="-1"></a><span class="co"># standardize column names and whitespace</span></span>
+<span id="cb10-28"><a href="#cb10-28" aria-hidden="true" tabindex="-1"></a>od_train_raw.columns <span class="op">=</span> od_train_raw.columns.<span class="bu">str</span>.strip()</span>
+<span id="cb10-29"><a href="#cb10-29" aria-hidden="true" tabindex="-1"></a>od_train_raw[<span class="st">"ORIGIN_PT_CODE"</span>] <span class="op">=</span> od_train_raw[<span class="st">"ORIGIN_PT_CODE"</span>].astype(<span class="bu">str</span>).<span class="bu">str</span>.strip()</span>
+<span id="cb10-30"><a href="#cb10-30" aria-hidden="true" tabindex="-1"></a>od_train_raw[<span class="st">"DESTINATION_PT_CODE"</span>] <span class="op">=</span> od_train_raw[<span class="st">"DESTINATION_PT_CODE"</span>].astype(<span class="bu">str</span>).<span class="bu">str</span>.strip()</span>
+<span id="cb10-31"><a href="#cb10-31" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-32"><a href="#cb10-32" aria-hidden="true" tabindex="-1"></a><span class="co"># extract the first station code (everything before the first space) from nightlife_mrt_expanded</span></span>
+<span id="cb10-33"><a href="#cb10-33" aria-hidden="true" tabindex="-1"></a>nightlife_mrt_expanded[<span class="st">"first_code"</span>] <span class="op">=</span> (</span>
+<span id="cb10-34"><a href="#cb10-34" aria-hidden="true" tabindex="-1"></a>    nightlife_mrt_expanded[<span class="st">"station_code"</span>]</span>
+<span id="cb10-35"><a href="#cb10-35" aria-hidden="true" tabindex="-1"></a>    .astype(<span class="bu">str</span>)</span>
+<span id="cb10-36"><a href="#cb10-36" aria-hidden="true" tabindex="-1"></a>    .<span class="bu">str</span>.strip()</span>
+<span id="cb10-37"><a href="#cb10-37" aria-hidden="true" tabindex="-1"></a>    .<span class="bu">str</span>.split(<span class="st">" "</span>)</span>
+<span id="cb10-38"><a href="#cb10-38" aria-hidden="true" tabindex="-1"></a>    .<span class="bu">str</span>[<span class="dv">0</span>]</span>
+<span id="cb10-39"><a href="#cb10-39" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb10-40"><a href="#cb10-40" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-41"><a href="#cb10-41" aria-hidden="true" tabindex="-1"></a><span class="co"># build a lookup dictionary mapping each station's first_code to its cluster_id</span></span>
+<span id="cb10-42"><a href="#cb10-42" aria-hidden="true" tabindex="-1"></a>code_to_cluster <span class="op">=</span> <span class="bu">dict</span>(</span>
+<span id="cb10-43"><a href="#cb10-43" aria-hidden="true" tabindex="-1"></a>    <span class="bu">zip</span>(nightlife_mrt_expanded[<span class="st">"first_code"</span>], nightlife_mrt_expanded[<span class="st">"cluster_id"</span>])</span>
+<span id="cb10-44"><a href="#cb10-44" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb10-45"><a href="#cb10-45" aria-hidden="true" tabindex="-1"></a>target_codes <span class="op">=</span> <span class="bu">set</span>(code_to_cluster.keys())</span>
+<span id="cb10-46"><a href="#cb10-46" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-47"><a href="#cb10-47" aria-hidden="true" tabindex="-1"></a><span class="co"># match first_code against dash-separated tokens in ORIGIN_PT_CODE (e.g., "CC1" in ["CC1", "NE6", "NS24"])</span></span>
+<span id="cb10-48"><a href="#cb10-48" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> match_cluster_id(od_code_str):</span>
+<span id="cb10-49"><a href="#cb10-49" aria-hidden="true" tabindex="-1"></a>    tokens <span class="op">=</span> od_code_str.split(<span class="st">"-"</span>)</span>
+<span id="cb10-50"><a href="#cb10-50" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> token <span class="kw">in</span> tokens:</span>
+<span id="cb10-51"><a href="#cb10-51" aria-hidden="true" tabindex="-1"></a>        <span class="cf">if</span> token <span class="kw">in</span> code_to_cluster:</span>
+<span id="cb10-52"><a href="#cb10-52" aria-hidden="true" tabindex="-1"></a>            <span class="cf">return</span> code_to_cluster[token]</span>
+<span id="cb10-53"><a href="#cb10-53" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> <span class="va">None</span></span>
+<span id="cb10-54"><a href="#cb10-54" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-55"><a href="#cb10-55" aria-hidden="true" tabindex="-1"></a><span class="co"># filter for October 2026 and nightlife origin stations</span></span>
+<span id="cb10-56"><a href="#cb10-56" aria-hidden="true" tabindex="-1"></a>od_oct_origins <span class="op">=</span> od_train_raw[</span>
+<span id="cb10-57"><a href="#cb10-57" aria-hidden="true" tabindex="-1"></a>    od_train_raw[<span class="st">"YEAR_MONTH"</span>] <span class="op">==</span> <span class="st">"2026-10"</span></span>
+<span id="cb10-58"><a href="#cb10-58" aria-hidden="true" tabindex="-1"></a>].copy()</span>
 <span id="cb10-59"><a href="#cb10-59" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb10-60"><a href="#cb10-60" aria-hidden="true" tabindex="-1"></a><span class="co"># filter for late-night window from 8pm to 12am (20:00 to 00:00)</span></span>
-<span id="cb10-61"><a href="#cb10-61" aria-hidden="true" tabindex="-1"></a>late_night_hours <span class="op">=</span> [<span class="dv">20</span>, <span class="dv">21</span>, <span class="dv">22</span>, <span class="dv">23</span>, <span class="dv">0</span>]</span>
-<span id="cb10-62"><a href="#cb10-62" aria-hidden="true" tabindex="-1"></a>od_nightlife_late <span class="op">=</span> od_oct_origins[</span>
-<span id="cb10-63"><a href="#cb10-63" aria-hidden="true" tabindex="-1"></a>    od_oct_origins[<span class="st">"TIME_PER_HOUR"</span>].isin(late_night_hours)</span>
-<span id="cb10-64"><a href="#cb10-64" aria-hidden="true" tabindex="-1"></a>].copy()</span>
-<span id="cb10-65"><a href="#cb10-65" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb10-66"><a href="#cb10-66" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"Total October 2026 rows for nightlife origin stations (all hours): </span><span class="sc">{</span><span class="bu">len</span>(od_oct_origins)<span class="sc">:,}</span><span class="ss">"</span>)</span>
-<span id="cb10-67"><a href="#cb10-67" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"Filtered 8pm–12am rows for nightlife origin stations: </span><span class="sc">{</span><span class="bu">len</span>(od_nightlife_late)<span class="sc">:,}</span><span class="ss">"</span>)</span>
-<span id="cb10-68"><a href="#cb10-68" aria-hidden="true" tabindex="-1"></a>od_nightlife_late.head(<span class="dv">10</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<span id="cb10-60"><a href="#cb10-60" aria-hidden="true" tabindex="-1"></a>od_oct_origins[<span class="st">"origin_cluster_id"</span>] <span class="op">=</span> od_oct_origins[<span class="st">"ORIGIN_PT_CODE"</span>].<span class="bu">apply</span>(match_cluster_id)</span>
+<span id="cb10-61"><a href="#cb10-61" aria-hidden="true" tabindex="-1"></a>od_oct_origins <span class="op">=</span> od_oct_origins.dropna(subset<span class="op">=</span>[<span class="st">"origin_cluster_id"</span>]).copy()</span>
+<span id="cb10-62"><a href="#cb10-62" aria-hidden="true" tabindex="-1"></a>od_oct_origins[<span class="st">"origin_cluster_id"</span>] <span class="op">=</span> od_oct_origins[<span class="st">"origin_cluster_id"</span>].astype(<span class="bu">int</span>)</span>
+<span id="cb10-63"><a href="#cb10-63" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-64"><a href="#cb10-64" aria-hidden="true" tabindex="-1"></a><span class="co"># filter for late-night window from 8pm to 12am (20:00 to 00:00)</span></span>
+<span id="cb10-65"><a href="#cb10-65" aria-hidden="true" tabindex="-1"></a>late_night_hours <span class="op">=</span> [<span class="dv">20</span>, <span class="dv">21</span>, <span class="dv">22</span>, <span class="dv">23</span>, <span class="dv">0</span>]</span>
+<span id="cb10-66"><a href="#cb10-66" aria-hidden="true" tabindex="-1"></a>od_nightlife_late <span class="op">=</span> od_oct_origins[</span>
+<span id="cb10-67"><a href="#cb10-67" aria-hidden="true" tabindex="-1"></a>    od_oct_origins[<span class="st">"TIME_PER_HOUR"</span>].isin(late_night_hours)</span>
+<span id="cb10-68"><a href="#cb10-68" aria-hidden="true" tabindex="-1"></a>].copy()</span>
+<span id="cb10-69"><a href="#cb10-69" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-70"><a href="#cb10-70" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"Total October 2026 rows for nightlife origin stations (all hours): </span><span class="sc">{</span><span class="bu">len</span>(od_oct_origins)<span class="sc">:,}</span><span class="ss">"</span>)</span>
+<span id="cb10-71"><a href="#cb10-71" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"Filtered 8pm–12am rows for nightlife origin stations: </span><span class="sc">{</span><span class="bu">len</span>(od_nightlife_late)<span class="sc">:,}</span><span class="ss">"</span>)</span>
+<span id="cb10-72"><a href="#cb10-72" aria-hidden="true" tabindex="-1"></a>od_nightlife_late.head(<span class="dv">10</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </details>
+<div class="cell-output cell-output-stdin">
+<pre><code>LTA DataMall API key (hidden):  ········</code></pre>
+</div>
 <div class="cell-output cell-output-stdout">
 <pre><code>Total October 2026 rows for nightlife origin stations (all hours): 55,934
 Filtered 8pm–12am rows for nightlife origin stations: 13,405</code></pre>
 </div>
-<div class="cell-output cell-output-display" data-execution_count="34">
+<div class="cell-output cell-output-display" data-execution_count="56">
 <div>
 
 
@@ -3079,7 +3086,7 @@ Filtered 8pm–12am rows for nightlife origin stations: 13,405</code></pre>
 <div id="cell-16" class="cell" data-execution_count="44">
 <details class="code-fold">
 <summary>Show code</summary>
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb12"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"Total number of nighttime trips made in Oct 2026: </span><span class="sc">{</span>od_nightlife_late[<span class="st">'TOTAL_TRIPS'</span>]<span class="sc">.</span><span class="bu">sum</span>()<span class="sc">:,}</span><span class="ss">"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb13"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"Total number of nighttime trips made in Oct 2026: </span><span class="sc">{</span>od_nightlife_late[<span class="st">'TOTAL_TRIPS'</span>]<span class="sc">.</span><span class="bu">sum</span>()<span class="sc">:,}</span><span class="ss">"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </details>
 <div class="cell-output cell-output-stdout">
 <pre><code>Total number of nighttime trips made in Oct 2026: 759,721</code></pre>
@@ -3088,218 +3095,218 @@ Filtered 8pm–12am rows for nightlife origin stations: 13,405</code></pre>
 <div id="cell-17" class="cell" data-execution_count="35">
 <details class="code-fold">
 <summary>Show code</summary>
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb14"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a><span class="co"># save O-D dataset</span></span>
-<span id="cb14-2"><a href="#cb14-2" aria-hidden="true" tabindex="-1"></a>od_nightlife_late.to_csv(<span class="st">"../../data/od_nightlife_late.csv"</span>, index<span class="op">=</span><span class="va">False</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb15"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true" tabindex="-1"></a><span class="co"># save O-D dataset</span></span>
+<span id="cb15-2"><a href="#cb15-2" aria-hidden="true" tabindex="-1"></a>od_nightlife_late.to_csv(<span class="st">"../../data/od_nightlife_late.csv"</span>, index<span class="op">=</span><span class="va">False</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </details>
 </div>
 <div id="cell-18" class="cell" data-execution_count="36">
 <details class="code-fold">
 <summary>Show code</summary>
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb15"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> branca.colormap <span class="im">as</span> cm</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb16"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb16-1"><a href="#cb16-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> branca.colormap <span class="im">as</span> cm</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </details>
 </div>
 <div id="cell-19" class="cell" data-scrolled="true" data-execution_count="48">
 <details class="code-fold">
 <summary>Show code</summary>
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb16"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb16-1"><a href="#cb16-1" aria-hidden="true" tabindex="-1"></a><span class="co"># extract first station code from mrt_wgs84 to match dash-separated LTA O-D tokens</span></span>
-<span id="cb16-2"><a href="#cb16-2" aria-hidden="true" tabindex="-1"></a>mrt_plot <span class="op">=</span> mrt_wgs84.to_crs(epsg<span class="op">=</span><span class="dv">4326</span>).copy()</span>
-<span id="cb16-3"><a href="#cb16-3" aria-hidden="true" tabindex="-1"></a>mrt_plot[<span class="st">"first_code"</span>] <span class="op">=</span> (</span>
-<span id="cb16-4"><a href="#cb16-4" aria-hidden="true" tabindex="-1"></a>    mrt_plot[<span class="st">"station_code"</span>]</span>
-<span id="cb16-5"><a href="#cb16-5" aria-hidden="true" tabindex="-1"></a>    .astype(<span class="bu">str</span>)</span>
-<span id="cb16-6"><a href="#cb16-6" aria-hidden="true" tabindex="-1"></a>    .<span class="bu">str</span>.strip()</span>
-<span id="cb16-7"><a href="#cb16-7" aria-hidden="true" tabindex="-1"></a>    .<span class="bu">str</span>.split(<span class="st">" "</span>)</span>
-<span id="cb16-8"><a href="#cb16-8" aria-hidden="true" tabindex="-1"></a>    .<span class="bu">str</span>[<span class="dv">0</span>]</span>
-<span id="cb16-9"><a href="#cb16-9" aria-hidden="true" tabindex="-1"></a>)</span>
-<span id="cb16-10"><a href="#cb16-10" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb16-11"><a href="#cb16-11" aria-hidden="true" tabindex="-1"></a><span class="co"># aggregate total late-night trips by destination and origin station codes</span></span>
-<span id="cb16-12"><a href="#cb16-12" aria-hidden="true" tabindex="-1"></a>dest_grouped <span class="op">=</span> (</span>
-<span id="cb16-13"><a href="#cb16-13" aria-hidden="true" tabindex="-1"></a>    od_nightlife_late.groupby(<span class="st">"DESTINATION_PT_CODE"</span>, as_index<span class="op">=</span><span class="va">False</span>)[<span class="st">"TOTAL_TRIPS"</span>]</span>
-<span id="cb16-14"><a href="#cb16-14" aria-hidden="true" tabindex="-1"></a>    .<span class="bu">sum</span>()</span>
-<span id="cb16-15"><a href="#cb16-15" aria-hidden="true" tabindex="-1"></a>)</span>
-<span id="cb16-16"><a href="#cb16-16" aria-hidden="true" tabindex="-1"></a>orig_grouped <span class="op">=</span> (</span>
-<span id="cb16-17"><a href="#cb16-17" aria-hidden="true" tabindex="-1"></a>    od_nightlife_late.groupby(<span class="st">"ORIGIN_PT_CODE"</span>, as_index<span class="op">=</span><span class="va">False</span>)[<span class="st">"TOTAL_TRIPS"</span>]</span>
-<span id="cb16-18"><a href="#cb16-18" aria-hidden="true" tabindex="-1"></a>    .<span class="bu">sum</span>()</span>
-<span id="cb16-19"><a href="#cb16-19" aria-hidden="true" tabindex="-1"></a>)</span>
-<span id="cb16-20"><a href="#cb16-20" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb16-21"><a href="#cb16-21" aria-hidden="true" tabindex="-1"></a><span class="co"># build token-level lookup dictionaries so interchange ordering differences still match</span></span>
-<span id="cb16-22"><a href="#cb16-22" aria-hidden="true" tabindex="-1"></a>dest_token_trips <span class="op">=</span> {}</span>
-<span id="cb16-23"><a href="#cb16-23" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> _, row <span class="kw">in</span> dest_grouped.iterrows():</span>
-<span id="cb16-24"><a href="#cb16-24" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> token <span class="kw">in</span> <span class="bu">str</span>(row[<span class="st">"DESTINATION_PT_CODE"</span>]).split(<span class="st">"-"</span>):</span>
-<span id="cb16-25"><a href="#cb16-25" aria-hidden="true" tabindex="-1"></a>        dest_token_trips[token] <span class="op">=</span> dest_token_trips.get(token, <span class="dv">0</span>) <span class="op">+</span> row[<span class="st">"TOTAL_TRIPS"</span>]</span>
-<span id="cb16-26"><a href="#cb16-26" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb16-27"><a href="#cb16-27" aria-hidden="true" tabindex="-1"></a>orig_token_trips <span class="op">=</span> {}</span>
-<span id="cb16-28"><a href="#cb16-28" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> _, row <span class="kw">in</span> orig_grouped.iterrows():</span>
-<span id="cb16-29"><a href="#cb16-29" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> token <span class="kw">in</span> <span class="bu">str</span>(row[<span class="st">"ORIGIN_PT_CODE"</span>]).split(<span class="st">"-"</span>):</span>
-<span id="cb16-30"><a href="#cb16-30" aria-hidden="true" tabindex="-1"></a>        orig_token_trips[token] <span class="op">=</span> orig_token_trips.get(token, <span class="dv">0</span>) <span class="op">+</span> row[<span class="st">"TOTAL_TRIPS"</span>]</span>
-<span id="cb16-31"><a href="#cb16-31" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb16-32"><a href="#cb16-32" aria-hidden="true" tabindex="-1"></a><span class="co"># map aggregated trip counts onto mrt_plot</span></span>
-<span id="cb16-33"><a href="#cb16-33" aria-hidden="true" tabindex="-1"></a>mrt_plot[<span class="st">"dest_trips"</span>] <span class="op">=</span> mrt_plot[<span class="st">"first_code"</span>].<span class="bu">map</span>(dest_token_trips).fillna(<span class="dv">0</span>)</span>
-<span id="cb16-34"><a href="#cb16-34" aria-hidden="true" tabindex="-1"></a>mrt_plot[<span class="st">"orig_trips"</span>] <span class="op">=</span> mrt_plot[<span class="st">"first_code"</span>].<span class="bu">map</span>(orig_token_trips).fillna(<span class="dv">0</span>)</span>
-<span id="cb16-35"><a href="#cb16-35" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb16-36"><a href="#cb16-36" aria-hidden="true" tabindex="-1"></a><span class="co"># deduplicate physical interchange points if mrt_wgs84 stores one row per line code</span></span>
-<span id="cb16-37"><a href="#cb16-37" aria-hidden="true" tabindex="-1"></a>stn_name_col <span class="op">=</span> <span class="bu">next</span>(</span>
-<span id="cb16-38"><a href="#cb16-38" aria-hidden="true" tabindex="-1"></a>    (c <span class="cf">for</span> c <span class="kw">in</span> [<span class="st">"station_name"</span>, <span class="st">"STN_NAME"</span>, <span class="st">"NAME"</span>, <span class="st">"name"</span>] <span class="cf">if</span> c <span class="kw">in</span> mrt_plot.columns),</span>
-<span id="cb16-39"><a href="#cb16-39" aria-hidden="true" tabindex="-1"></a>    <span class="va">None</span>,</span>
-<span id="cb16-40"><a href="#cb16-40" aria-hidden="true" tabindex="-1"></a>)</span>
-<span id="cb16-41"><a href="#cb16-41" aria-hidden="true" tabindex="-1"></a><span class="cf">if</span> stn_name_col:</span>
-<span id="cb16-42"><a href="#cb16-42" aria-hidden="true" tabindex="-1"></a>    mrt_plot <span class="op">=</span> (</span>
-<span id="cb16-43"><a href="#cb16-43" aria-hidden="true" tabindex="-1"></a>        mrt_plot.sort_values([<span class="st">"dest_trips"</span>, <span class="st">"orig_trips"</span>], ascending<span class="op">=</span><span class="va">False</span>)</span>
-<span id="cb16-44"><a href="#cb16-44" aria-hidden="true" tabindex="-1"></a>        .drop_duplicates(subset<span class="op">=</span>[stn_name_col])</span>
-<span id="cb16-45"><a href="#cb16-45" aria-hidden="true" tabindex="-1"></a>        .copy()</span>
-<span id="cb16-46"><a href="#cb16-46" aria-hidden="true" tabindex="-1"></a>    )</span>
-<span id="cb16-47"><a href="#cb16-47" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb16-48"><a href="#cb16-48" aria-hidden="true" tabindex="-1"></a><span class="co"># flipped color scales: light-to-deep blue for destinations, light-to-deep red for origins</span></span>
-<span id="cb16-49"><a href="#cb16-49" aria-hidden="true" tabindex="-1"></a>dest_max <span class="op">=</span> mrt_plot[<span class="st">"dest_trips"</span>].<span class="bu">max</span>()</span>
-<span id="cb16-50"><a href="#cb16-50" aria-hidden="true" tabindex="-1"></a>orig_max <span class="op">=</span> mrt_plot[<span class="st">"orig_trips"</span>].<span class="bu">max</span>()</span>
-<span id="cb16-51"><a href="#cb16-51" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb16-52"><a href="#cb16-52" aria-hidden="true" tabindex="-1"></a>dest_cmap <span class="op">=</span> cm.LinearColormap(</span>
-<span id="cb16-53"><a href="#cb16-53" aria-hidden="true" tabindex="-1"></a>    colors<span class="op">=</span>[<span class="st">"#caf0f8"</span>, <span class="st">"#48cae4"</span>, <span class="st">"#0096c7"</span>, <span class="st">"#1d4e89"</span>],</span>
-<span id="cb16-54"><a href="#cb16-54" aria-hidden="true" tabindex="-1"></a>    vmin<span class="op">=</span><span class="dv">0</span>,</span>
-<span id="cb16-55"><a href="#cb16-55" aria-hidden="true" tabindex="-1"></a>    vmax<span class="op">=</span>dest_max,</span>
-<span id="cb16-56"><a href="#cb16-56" aria-hidden="true" tabindex="-1"></a>)</span>
-<span id="cb16-57"><a href="#cb16-57" aria-hidden="true" tabindex="-1"></a>orig_cmap <span class="op">=</span> cm.LinearColormap(</span>
-<span id="cb16-58"><a href="#cb16-58" aria-hidden="true" tabindex="-1"></a>    colors<span class="op">=</span>[<span class="st">"#fff3b0"</span>, <span class="st">"#faa307"</span>, <span class="st">"#e85d04"</span>, <span class="st">"#9b2226"</span>],</span>
-<span id="cb16-59"><a href="#cb16-59" aria-hidden="true" tabindex="-1"></a>    vmin<span class="op">=</span><span class="dv">0</span>,</span>
-<span id="cb16-60"><a href="#cb16-60" aria-hidden="true" tabindex="-1"></a>    vmax<span class="op">=</span>orig_max,</span>
-<span id="cb16-61"><a href="#cb16-61" aria-hidden="true" tabindex="-1"></a>)</span>
-<span id="cb16-62"><a href="#cb16-62" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb16-63"><a href="#cb16-63" aria-hidden="true" tabindex="-1"></a><span class="co"># initialize Esri Dark Gray Base map centered on Singapore</span></span>
-<span id="cb16-64"><a href="#cb16-64" aria-hidden="true" tabindex="-1"></a>m_od_mrt <span class="op">=</span> folium.Map(</span>
-<span id="cb16-65"><a href="#cb16-65" aria-hidden="true" tabindex="-1"></a>    location<span class="op">=</span>[<span class="fl">1.3521</span>, <span class="fl">103.8198</span>],</span>
-<span id="cb16-66"><a href="#cb16-66" aria-hidden="true" tabindex="-1"></a>    zoom_start<span class="op">=</span><span class="fl">11.5</span>,</span>
-<span id="cb16-67"><a href="#cb16-67" aria-hidden="true" tabindex="-1"></a>    tiles<span class="op">=</span><span class="va">None</span>,</span>
-<span id="cb16-68"><a href="#cb16-68" aria-hidden="true" tabindex="-1"></a>)</span>
-<span id="cb16-69"><a href="#cb16-69" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb16-70"><a href="#cb16-70" aria-hidden="true" tabindex="-1"></a>folium.TileLayer(</span>
-<span id="cb16-71"><a href="#cb16-71" aria-hidden="true" tabindex="-1"></a>    tiles<span class="op">=</span><span class="st">"https://services.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Base/MapServer/tile/</span><span class="sc">{z}</span><span class="st">/</span><span class="sc">{y}</span><span class="st">/</span><span class="sc">{x}</span><span class="st">"</span>,</span>
-<span id="cb16-72"><a href="#cb16-72" aria-hidden="true" tabindex="-1"></a>    attr<span class="op">=</span><span class="st">"Esri, HERE, Garmin, © OpenStreetMap contributors, and the GIS User Community"</span>,</span>
-<span id="cb16-73"><a href="#cb16-73" aria-hidden="true" tabindex="-1"></a>    name<span class="op">=</span><span class="st">"Esri Dark Gray Base"</span>,</span>
-<span id="cb16-74"><a href="#cb16-74" aria-hidden="true" tabindex="-1"></a>    control<span class="op">=</span><span class="va">False</span>,</span>
-<span id="cb16-75"><a href="#cb16-75" aria-hidden="true" tabindex="-1"></a>).add_to(m_od_mrt)</span>
-<span id="cb16-76"><a href="#cb16-76" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb16-77"><a href="#cb16-77" aria-hidden="true" tabindex="-1"></a><span class="co"># layer for destination MRT stations colored and sized by total incoming nightlife trips</span></span>
-<span id="cb16-78"><a href="#cb16-78" aria-hidden="true" tabindex="-1"></a>dest_fg <span class="op">=</span> folium.FeatureGroup(name<span class="op">=</span><span class="st">"Destination MRTs (Alighting Trips)"</span>, show<span class="op">=</span><span class="va">True</span>)</span>
-<span id="cb16-79"><a href="#cb16-79" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb16-80"><a href="#cb16-80" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> _, row <span class="kw">in</span> mrt_plot.iterrows():</span>
-<span id="cb16-81"><a href="#cb16-81" aria-hidden="true" tabindex="-1"></a>    pt <span class="op">=</span> row.geometry.centroid</span>
-<span id="cb16-82"><a href="#cb16-82" aria-hidden="true" tabindex="-1"></a>    trips <span class="op">=</span> row[<span class="st">"dest_trips"</span>]</span>
-<span id="cb16-83"><a href="#cb16-83" aria-hidden="true" tabindex="-1"></a>    label <span class="op">=</span> <span class="ss">f"</span><span class="sc">{</span>row[<span class="st">'station_code'</span>]<span class="sc">}</span><span class="ss"> (</span><span class="sc">{</span>row[stn_name_col]<span class="sc">}</span><span class="ss">)"</span> <span class="cf">if</span> stn_name_col <span class="cf">else</span> row[<span class="st">"station_code"</span>]</span>
-<span id="cb16-84"><a href="#cb16-84" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb16-85"><a href="#cb16-85" aria-hidden="true" tabindex="-1"></a>    color <span class="op">=</span> dest_cmap(trips) <span class="cf">if</span> trips <span class="op">&gt;</span> <span class="dv">0</span> <span class="cf">else</span> <span class="st">"#4a4a4a"</span></span>
-<span id="cb16-86"><a href="#cb16-86" aria-hidden="true" tabindex="-1"></a>    radius <span class="op">=</span> <span class="dv">4</span> <span class="op">+</span> (<span class="dv">10</span> <span class="op">*</span> (trips <span class="op">/</span> dest_max) <span class="op">**</span> <span class="fl">0.5</span>) <span class="cf">if</span> trips <span class="op">&gt;</span> <span class="dv">0</span> <span class="cf">else</span> <span class="fl">3.5</span></span>
-<span id="cb16-87"><a href="#cb16-87" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb16-88"><a href="#cb16-88" aria-hidden="true" tabindex="-1"></a>    folium.CircleMarker(</span>
-<span id="cb16-89"><a href="#cb16-89" aria-hidden="true" tabindex="-1"></a>        location<span class="op">=</span>[pt.y, pt.x],</span>
-<span id="cb16-90"><a href="#cb16-90" aria-hidden="true" tabindex="-1"></a>        radius<span class="op">=</span>radius,</span>
-<span id="cb16-91"><a href="#cb16-91" aria-hidden="true" tabindex="-1"></a>        color<span class="op">=</span><span class="st">"#d9f0ff"</span> <span class="cf">if</span> trips <span class="op">&gt;</span> <span class="dv">0</span> <span class="cf">else</span> <span class="st">"#666666"</span>,</span>
-<span id="cb16-92"><a href="#cb16-92" aria-hidden="true" tabindex="-1"></a>        weight<span class="op">=</span><span class="dv">1</span> <span class="cf">if</span> trips <span class="op">&gt;</span> <span class="dv">0</span> <span class="cf">else</span> <span class="fl">0.5</span>,</span>
-<span id="cb16-93"><a href="#cb16-93" aria-hidden="true" tabindex="-1"></a>        fill<span class="op">=</span><span class="va">True</span>,</span>
-<span id="cb16-94"><a href="#cb16-94" aria-hidden="true" tabindex="-1"></a>        fill_color<span class="op">=</span>color,</span>
-<span id="cb16-95"><a href="#cb16-95" aria-hidden="true" tabindex="-1"></a>        fill_opacity<span class="op">=</span><span class="fl">0.9</span> <span class="cf">if</span> trips <span class="op">&gt;</span> <span class="dv">0</span> <span class="cf">else</span> <span class="fl">0.4</span>,</span>
-<span id="cb16-96"><a href="#cb16-96" aria-hidden="true" tabindex="-1"></a>        tooltip<span class="op">=</span><span class="ss">f"Destination: </span><span class="sc">{</span>label<span class="sc">}</span><span class="ss"> | </span><span class="sc">{</span><span class="bu">int</span>(trips)<span class="sc">:,}</span><span class="ss"> trips"</span>,</span>
-<span id="cb16-97"><a href="#cb16-97" aria-hidden="true" tabindex="-1"></a>        popup<span class="op">=</span>folium.Popup(</span>
-<span id="cb16-98"><a href="#cb16-98" aria-hidden="true" tabindex="-1"></a>            <span class="ss">f"&lt;b&gt;Destination MRT:&lt;/b&gt; </span><span class="sc">{</span>label<span class="sc">}</span><span class="ss">&lt;br&gt;"</span></span>
-<span id="cb16-99"><a href="#cb16-99" aria-hidden="true" tabindex="-1"></a>            <span class="ss">f"&lt;b&gt;Late-Night Alighting Trips (8pm–12am):&lt;/b&gt; </span><span class="sc">{</span><span class="bu">int</span>(trips)<span class="sc">:,}</span><span class="ss">"</span>,</span>
-<span id="cb16-100"><a href="#cb16-100" aria-hidden="true" tabindex="-1"></a>            max_width<span class="op">=</span><span class="dv">280</span>,</span>
-<span id="cb16-101"><a href="#cb16-101" aria-hidden="true" tabindex="-1"></a>        ),</span>
-<span id="cb16-102"><a href="#cb16-102" aria-hidden="true" tabindex="-1"></a>    ).add_to(dest_fg)</span>
-<span id="cb16-103"><a href="#cb16-103" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb16-104"><a href="#cb16-104" aria-hidden="true" tabindex="-1"></a>dest_fg.add_to(m_od_mrt)</span>
-<span id="cb16-105"><a href="#cb16-105" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb16-106"><a href="#cb16-106" aria-hidden="true" tabindex="-1"></a><span class="co"># layer for nightlife origin MRT stations colored and sized by total outgoing trips</span></span>
-<span id="cb16-107"><a href="#cb16-107" aria-hidden="true" tabindex="-1"></a>orig_fg <span class="op">=</span> folium.FeatureGroup(name<span class="op">=</span><span class="st">"Nightlife Origin MRTs (Boarding Trips)"</span>, show<span class="op">=</span><span class="va">True</span>)</span>
-<span id="cb16-108"><a href="#cb16-108" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb16-109"><a href="#cb16-109" aria-hidden="true" tabindex="-1"></a>origin_only_gdf <span class="op">=</span> mrt_plot[mrt_plot[<span class="st">"orig_trips"</span>] <span class="op">&gt;</span> <span class="dv">0</span>].sort_values(<span class="st">"orig_trips"</span>, ascending<span class="op">=</span><span class="va">True</span>)</span>
-<span id="cb16-110"><a href="#cb16-110" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb16-111"><a href="#cb16-111" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> _, row <span class="kw">in</span> origin_only_gdf.iterrows():</span>
-<span id="cb16-112"><a href="#cb16-112" aria-hidden="true" tabindex="-1"></a>    pt <span class="op">=</span> row.geometry.centroid</span>
-<span id="cb16-113"><a href="#cb16-113" aria-hidden="true" tabindex="-1"></a>    trips <span class="op">=</span> row[<span class="st">"orig_trips"</span>]</span>
-<span id="cb16-114"><a href="#cb16-114" aria-hidden="true" tabindex="-1"></a>    label <span class="op">=</span> <span class="ss">f"</span><span class="sc">{</span>row[<span class="st">'station_code'</span>]<span class="sc">}</span><span class="ss"> (</span><span class="sc">{</span>row[stn_name_col]<span class="sc">}</span><span class="ss">)"</span> <span class="cf">if</span> stn_name_col <span class="cf">else</span> row[<span class="st">"station_code"</span>]</span>
-<span id="cb16-115"><a href="#cb16-115" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb16-116"><a href="#cb16-116" aria-hidden="true" tabindex="-1"></a>    color <span class="op">=</span> orig_cmap(trips)</span>
-<span id="cb16-117"><a href="#cb16-117" aria-hidden="true" tabindex="-1"></a>    radius <span class="op">=</span> <span class="dv">7</span> <span class="op">+</span> (<span class="dv">11</span> <span class="op">*</span> (trips <span class="op">/</span> orig_max) <span class="op">**</span> <span class="fl">0.5</span>)</span>
-<span id="cb16-118"><a href="#cb16-118" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb16-119"><a href="#cb16-119" aria-hidden="true" tabindex="-1"></a>    folium.CircleMarker(</span>
-<span id="cb16-120"><a href="#cb16-120" aria-hidden="true" tabindex="-1"></a>        location<span class="op">=</span>[pt.y, pt.x],</span>
-<span id="cb16-121"><a href="#cb16-121" aria-hidden="true" tabindex="-1"></a>        radius<span class="op">=</span>radius,</span>
-<span id="cb16-122"><a href="#cb16-122" aria-hidden="true" tabindex="-1"></a>        color<span class="op">=</span><span class="st">"#ffffff"</span>,</span>
-<span id="cb16-123"><a href="#cb16-123" aria-hidden="true" tabindex="-1"></a>        weight<span class="op">=</span><span class="dv">2</span>,</span>
-<span id="cb16-124"><a href="#cb16-124" aria-hidden="true" tabindex="-1"></a>        fill<span class="op">=</span><span class="va">True</span>,</span>
-<span id="cb16-125"><a href="#cb16-125" aria-hidden="true" tabindex="-1"></a>        fill_color<span class="op">=</span>color,</span>
-<span id="cb16-126"><a href="#cb16-126" aria-hidden="true" tabindex="-1"></a>        fill_opacity<span class="op">=</span><span class="fl">0.95</span>,</span>
-<span id="cb16-127"><a href="#cb16-127" aria-hidden="true" tabindex="-1"></a>        tooltip<span class="op">=</span><span class="ss">f"Nightlife Origin: </span><span class="sc">{</span>label<span class="sc">}</span><span class="ss"> | </span><span class="sc">{</span><span class="bu">int</span>(trips)<span class="sc">:,}</span><span class="ss"> trips"</span>,</span>
-<span id="cb16-128"><a href="#cb16-128" aria-hidden="true" tabindex="-1"></a>        popup<span class="op">=</span>folium.Popup(</span>
-<span id="cb16-129"><a href="#cb16-129" aria-hidden="true" tabindex="-1"></a>            <span class="ss">f"&lt;b&gt;Nightlife Origin MRT:&lt;/b&gt; </span><span class="sc">{</span>label<span class="sc">}</span><span class="ss">&lt;br&gt;"</span></span>
-<span id="cb16-130"><a href="#cb16-130" aria-hidden="true" tabindex="-1"></a>            <span class="ss">f"&lt;b&gt;Late-Night Boarding Trips (8pm–12am):&lt;/b&gt; </span><span class="sc">{</span><span class="bu">int</span>(trips)<span class="sc">:,}</span><span class="ss">"</span>,</span>
-<span id="cb16-131"><a href="#cb16-131" aria-hidden="true" tabindex="-1"></a>            max_width<span class="op">=</span><span class="dv">280</span>,</span>
-<span id="cb16-132"><a href="#cb16-132" aria-hidden="true" tabindex="-1"></a>        ),</span>
-<span id="cb16-133"><a href="#cb16-133" aria-hidden="true" tabindex="-1"></a>    ).add_to(orig_fg)</span>
-<span id="cb16-134"><a href="#cb16-134" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb16-135"><a href="#cb16-135" aria-hidden="true" tabindex="-1"></a>orig_fg.add_to(m_od_mrt)</span>
-<span id="cb16-136"><a href="#cb16-136" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb16-137"><a href="#cb16-137" aria-hidden="true" tabindex="-1"></a><span class="co"># add layer control so origin and destination layers can be toggled</span></span>
-<span id="cb16-138"><a href="#cb16-138" aria-hidden="true" tabindex="-1"></a>folium.LayerControl(position<span class="op">=</span><span class="st">"bottomright"</span>, collapsed<span class="op">=</span><span class="va">False</span>).add_to(m_od_mrt)</span>
-<span id="cb16-139"><a href="#cb16-139" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb16-140"><a href="#cb16-140" aria-hidden="true" tabindex="-1"></a><span class="co"># add floating map title</span></span>
-<span id="cb16-141"><a href="#cb16-141" aria-hidden="true" tabindex="-1"></a>title_html <span class="op">=</span> <span class="st">"""</span></span>
-<span id="cb16-142"><a href="#cb16-142" aria-hidden="true" tabindex="-1"></a><span class="st">&lt;div style="position: fixed; top: 15px; left: 55px; z-index: 9999;</span></span>
-<span id="cb16-143"><a href="#cb16-143" aria-hidden="true" tabindex="-1"></a><span class="st">            background: rgba(20, 20, 20, 0.92); color: #f0f0f0; padding: 10px 16px;</span></span>
-<span id="cb16-144"><a href="#cb16-144" aria-hidden="true" tabindex="-1"></a><span class="st">            border: 1px solid #555; border-radius: 6px;</span></span>
-<span id="cb16-145"><a href="#cb16-145" aria-hidden="true" tabindex="-1"></a><span class="st">            box-shadow: 0 2px 6px rgba(0,0,0,0.5);"&gt;</span></span>
-<span id="cb16-146"><a href="#cb16-146" aria-hidden="true" tabindex="-1"></a><span class="st">  &lt;div style="font-size: 15px; font-weight: 700; letter-spacing: 0.2px;"&gt;</span></span>
-<span id="cb16-147"><a href="#cb16-147" aria-hidden="true" tabindex="-1"></a><span class="st">    Top Origins and Destinations from Top 7 Nightlife Clusters in Singapore</span></span>
-<span id="cb16-148"><a href="#cb16-148" aria-hidden="true" tabindex="-1"></a><span class="st">  &lt;/div&gt;</span></span>
-<span id="cb16-149"><a href="#cb16-149" aria-hidden="true" tabindex="-1"></a><span class="st">  &lt;div style="font-size: 11px; color: #bbbbbb; margin-top: 2px;"&gt;</span></span>
-<span id="cb16-150"><a href="#cb16-150" aria-hidden="true" tabindex="-1"></a><span class="st">    LTA DataMall MRT Passenger Volume (October 2026, 8:00 PM – 12:00 AM)</span></span>
-<span id="cb16-151"><a href="#cb16-151" aria-hidden="true" tabindex="-1"></a><span class="st">  &lt;/div&gt;</span></span>
-<span id="cb16-152"><a href="#cb16-152" aria-hidden="true" tabindex="-1"></a><span class="st">&lt;/div&gt;</span></span>
-<span id="cb16-153"><a href="#cb16-153" aria-hidden="true" tabindex="-1"></a><span class="st">"""</span></span>
-<span id="cb16-154"><a href="#cb16-154" aria-hidden="true" tabindex="-1"></a>m_od_mrt.get_root().html.add_child(folium.Element(title_html))</span>
-<span id="cb16-155"><a href="#cb16-155" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb16-156"><a href="#cb16-156" aria-hidden="true" tabindex="-1"></a><span class="co"># add collapsible legend box with toggle button</span></span>
-<span id="cb16-157"><a href="#cb16-157" aria-hidden="true" tabindex="-1"></a>legend_html <span class="op">=</span> <span class="ss">f"""</span></span>
-<span id="cb16-158"><a href="#cb16-158" aria-hidden="true" tabindex="-1"></a><span class="ss">&lt;div id="od-legend-box" style="position: fixed; bottom: 30px; left: 30px; z-index: 9999;</span></span>
-<span id="cb16-159"><a href="#cb16-159" aria-hidden="true" tabindex="-1"></a><span class="ss">            background: rgba(20, 20, 20, 0.92); color: #f0f0f0; padding: 10px 14px;</span></span>
-<span id="cb16-160"><a href="#cb16-160" aria-hidden="true" tabindex="-1"></a><span class="ss">            border: 1px solid #555; border-radius: 6px; font-size: 12px;</span></span>
-<span id="cb16-161"><a href="#cb16-161" aria-hidden="true" tabindex="-1"></a><span class="ss">            box-shadow: 0 2px 6px rgba(0,0,0,0.5); max-width: 280px;"&gt;</span></span>
-<span id="cb16-162"><a href="#cb16-162" aria-hidden="true" tabindex="-1"></a><span class="ss">  &lt;div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;"&gt;</span></span>
-<span id="cb16-163"><a href="#cb16-163" aria-hidden="true" tabindex="-1"></a><span class="ss">    &lt;b&gt;Late-Night MRT O–D Volume (8pm–12am)&lt;/b&gt;</span></span>
-<span id="cb16-164"><a href="#cb16-164" aria-hidden="true" tabindex="-1"></a><span class="ss">    &lt;button onclick="var body = document.getElementById('od-legend-body');</span></span>
-<span id="cb16-165"><a href="#cb16-165" aria-hidden="true" tabindex="-1"></a><span class="ss">                     if (body.style.display === 'none') </span><span class="ch">{{</span><span class="ss"> body.style.display = 'block'; this.innerText = 'Hide'; </span><span class="ch">}}</span></span>
-<span id="cb16-166"><a href="#cb16-166" aria-hidden="true" tabindex="-1"></a><span class="ss">                     else </span><span class="ch">{{</span><span class="ss"> body.style.display = 'none'; this.innerText = 'Show'; </span><span class="ch">}}</span><span class="ss">"</span></span>
-<span id="cb16-167"><a href="#cb16-167" aria-hidden="true" tabindex="-1"></a><span class="ss">            style="background: #333; color: #fff; border: 1px solid #666; border-radius: 4px;</span></span>
-<span id="cb16-168"><a href="#cb16-168" aria-hidden="true" tabindex="-1"></a><span class="ss">                   padding: 2px 6px; font-size: 11px; cursor: pointer; margin-left: 8px;"&gt;</span></span>
-<span id="cb16-169"><a href="#cb16-169" aria-hidden="true" tabindex="-1"></a><span class="ss">      Hide</span></span>
-<span id="cb16-170"><a href="#cb16-170" aria-hidden="true" tabindex="-1"></a><span class="ss">    &lt;/button&gt;</span></span>
-<span id="cb16-171"><a href="#cb16-171" aria-hidden="true" tabindex="-1"></a><span class="ss">  &lt;/div&gt;</span></span>
-<span id="cb16-172"><a href="#cb16-172" aria-hidden="true" tabindex="-1"></a><span class="ss">  &lt;div id="od-legend-body"&gt;</span></span>
-<span id="cb16-173"><a href="#cb16-173" aria-hidden="true" tabindex="-1"></a><span class="ss">    &lt;div style="margin-top: 6px;"&gt;&lt;b&gt;Destination MRTs (Alighting Trips)&lt;/b&gt;&lt;/div&gt;</span></span>
-<span id="cb16-174"><a href="#cb16-174" aria-hidden="true" tabindex="-1"></a><span class="ss">    &lt;div style="height: 10px; width: 100%; border-radius: 3px; margin: 4px 0;</span></span>
-<span id="cb16-175"><a href="#cb16-175" aria-hidden="true" tabindex="-1"></a><span class="ss">                background: linear-gradient(to right, #caf0f8, #48cae4, #0096c7, #1d4e89);"&gt;&lt;/div&gt;</span></span>
-<span id="cb16-176"><a href="#cb16-176" aria-hidden="true" tabindex="-1"></a><span class="ss">    &lt;div style="display: flex; justify-content: space-between; font-size: 11px; color: #ccc;"&gt;</span></span>
-<span id="cb16-177"><a href="#cb16-177" aria-hidden="true" tabindex="-1"></a><span class="ss">      &lt;span&gt;1&lt;/span&gt;</span></span>
-<span id="cb16-178"><a href="#cb16-178" aria-hidden="true" tabindex="-1"></a><span class="ss">      &lt;span&gt;</span><span class="sc">{</span><span class="bu">int</span>(dest_max)<span class="sc">:,}</span><span class="ss"> trips&lt;/span&gt;</span></span>
-<span id="cb16-179"><a href="#cb16-179" aria-hidden="true" tabindex="-1"></a><span class="ss">    &lt;/div&gt;</span></span>
-<span id="cb16-180"><a href="#cb16-180" aria-hidden="true" tabindex="-1"></a><span class="ss">    &lt;div style="font-size: 11px; color: #999; margin-top: 2px;"&gt;</span></span>
-<span id="cb16-181"><a href="#cb16-181" aria-hidden="true" tabindex="-1"></a><span class="ss">      &lt;span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:#4a4a4a;margin-right:5px;"&gt;&lt;/span&gt;0 trips</span></span>
-<span id="cb16-182"><a href="#cb16-182" aria-hidden="true" tabindex="-1"></a><span class="ss">    &lt;/div&gt;</span></span>
-<span id="cb16-183"><a href="#cb16-183" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb16-184"><a href="#cb16-184" aria-hidden="true" tabindex="-1"></a><span class="ss">    &lt;div style="margin-top: 10px;"&gt;&lt;b&gt;Nightlife Origin MRTs (Boarding Trips)&lt;/b&gt;&lt;/div&gt;</span></span>
-<span id="cb16-185"><a href="#cb16-185" aria-hidden="true" tabindex="-1"></a><span class="ss">    &lt;div style="height: 10px; width: 100%; border-radius: 3px; margin: 4px 0;</span></span>
-<span id="cb16-186"><a href="#cb16-186" aria-hidden="true" tabindex="-1"></a><span class="ss">                background: linear-gradient(to right, #fff3b0, #faa307, #e85d04, #9b2226);"&gt;&lt;/div&gt;</span></span>
-<span id="cb16-187"><a href="#cb16-187" aria-hidden="true" tabindex="-1"></a><span class="ss">    &lt;div style="display: flex; justify-content: space-between; font-size: 11px; color: #ccc;"&gt;</span></span>
-<span id="cb16-188"><a href="#cb16-188" aria-hidden="true" tabindex="-1"></a><span class="ss">      &lt;span&gt;Low&lt;/span&gt;</span></span>
-<span id="cb16-189"><a href="#cb16-189" aria-hidden="true" tabindex="-1"></a><span class="ss">      &lt;span&gt;</span><span class="sc">{</span><span class="bu">int</span>(orig_max)<span class="sc">:,}</span><span class="ss"> trips&lt;/span&gt;</span></span>
-<span id="cb16-190"><a href="#cb16-190" aria-hidden="true" tabindex="-1"></a><span class="ss">    &lt;/div&gt;</span></span>
-<span id="cb16-191"><a href="#cb16-191" aria-hidden="true" tabindex="-1"></a><span class="ss">    &lt;div style="font-size: 11px; color: #aaa; margin-top: 4px;"&gt;</span></span>
-<span id="cb16-192"><a href="#cb16-192" aria-hidden="true" tabindex="-1"></a><span class="ss">      *Circle area is proportional to total trips; white-ringed circles indicate nightlife origin stations.</span></span>
-<span id="cb16-193"><a href="#cb16-193" aria-hidden="true" tabindex="-1"></a><span class="ss">    &lt;/div&gt;</span></span>
-<span id="cb16-194"><a href="#cb16-194" aria-hidden="true" tabindex="-1"></a><span class="ss">  &lt;/div&gt;</span></span>
-<span id="cb16-195"><a href="#cb16-195" aria-hidden="true" tabindex="-1"></a><span class="ss">&lt;/div&gt;</span></span>
-<span id="cb16-196"><a href="#cb16-196" aria-hidden="true" tabindex="-1"></a><span class="ss">"""</span></span>
-<span id="cb16-197"><a href="#cb16-197" aria-hidden="true" tabindex="-1"></a>m_od_mrt.get_root().html.add_child(folium.Element(legend_html))</span>
-<span id="cb16-198"><a href="#cb16-198" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb16-199"><a href="#cb16-199" aria-hidden="true" tabindex="-1"></a>m_od_mrt</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb17"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb17-1"><a href="#cb17-1" aria-hidden="true" tabindex="-1"></a><span class="co"># extract first station code from mrt_wgs84 to match dash-separated LTA O-D tokens</span></span>
+<span id="cb17-2"><a href="#cb17-2" aria-hidden="true" tabindex="-1"></a>mrt_plot <span class="op">=</span> mrt_wgs84.to_crs(epsg<span class="op">=</span><span class="dv">4326</span>).copy()</span>
+<span id="cb17-3"><a href="#cb17-3" aria-hidden="true" tabindex="-1"></a>mrt_plot[<span class="st">"first_code"</span>] <span class="op">=</span> (</span>
+<span id="cb17-4"><a href="#cb17-4" aria-hidden="true" tabindex="-1"></a>    mrt_plot[<span class="st">"station_code"</span>]</span>
+<span id="cb17-5"><a href="#cb17-5" aria-hidden="true" tabindex="-1"></a>    .astype(<span class="bu">str</span>)</span>
+<span id="cb17-6"><a href="#cb17-6" aria-hidden="true" tabindex="-1"></a>    .<span class="bu">str</span>.strip()</span>
+<span id="cb17-7"><a href="#cb17-7" aria-hidden="true" tabindex="-1"></a>    .<span class="bu">str</span>.split(<span class="st">" "</span>)</span>
+<span id="cb17-8"><a href="#cb17-8" aria-hidden="true" tabindex="-1"></a>    .<span class="bu">str</span>[<span class="dv">0</span>]</span>
+<span id="cb17-9"><a href="#cb17-9" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb17-10"><a href="#cb17-10" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb17-11"><a href="#cb17-11" aria-hidden="true" tabindex="-1"></a><span class="co"># aggregate total late-night trips by destination and origin station codes</span></span>
+<span id="cb17-12"><a href="#cb17-12" aria-hidden="true" tabindex="-1"></a>dest_grouped <span class="op">=</span> (</span>
+<span id="cb17-13"><a href="#cb17-13" aria-hidden="true" tabindex="-1"></a>    od_nightlife_late.groupby(<span class="st">"DESTINATION_PT_CODE"</span>, as_index<span class="op">=</span><span class="va">False</span>)[<span class="st">"TOTAL_TRIPS"</span>]</span>
+<span id="cb17-14"><a href="#cb17-14" aria-hidden="true" tabindex="-1"></a>    .<span class="bu">sum</span>()</span>
+<span id="cb17-15"><a href="#cb17-15" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb17-16"><a href="#cb17-16" aria-hidden="true" tabindex="-1"></a>orig_grouped <span class="op">=</span> (</span>
+<span id="cb17-17"><a href="#cb17-17" aria-hidden="true" tabindex="-1"></a>    od_nightlife_late.groupby(<span class="st">"ORIGIN_PT_CODE"</span>, as_index<span class="op">=</span><span class="va">False</span>)[<span class="st">"TOTAL_TRIPS"</span>]</span>
+<span id="cb17-18"><a href="#cb17-18" aria-hidden="true" tabindex="-1"></a>    .<span class="bu">sum</span>()</span>
+<span id="cb17-19"><a href="#cb17-19" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb17-20"><a href="#cb17-20" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb17-21"><a href="#cb17-21" aria-hidden="true" tabindex="-1"></a><span class="co"># build token-level lookup dictionaries so interchange ordering differences still match</span></span>
+<span id="cb17-22"><a href="#cb17-22" aria-hidden="true" tabindex="-1"></a>dest_token_trips <span class="op">=</span> {}</span>
+<span id="cb17-23"><a href="#cb17-23" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> _, row <span class="kw">in</span> dest_grouped.iterrows():</span>
+<span id="cb17-24"><a href="#cb17-24" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> token <span class="kw">in</span> <span class="bu">str</span>(row[<span class="st">"DESTINATION_PT_CODE"</span>]).split(<span class="st">"-"</span>):</span>
+<span id="cb17-25"><a href="#cb17-25" aria-hidden="true" tabindex="-1"></a>        dest_token_trips[token] <span class="op">=</span> dest_token_trips.get(token, <span class="dv">0</span>) <span class="op">+</span> row[<span class="st">"TOTAL_TRIPS"</span>]</span>
+<span id="cb17-26"><a href="#cb17-26" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb17-27"><a href="#cb17-27" aria-hidden="true" tabindex="-1"></a>orig_token_trips <span class="op">=</span> {}</span>
+<span id="cb17-28"><a href="#cb17-28" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> _, row <span class="kw">in</span> orig_grouped.iterrows():</span>
+<span id="cb17-29"><a href="#cb17-29" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> token <span class="kw">in</span> <span class="bu">str</span>(row[<span class="st">"ORIGIN_PT_CODE"</span>]).split(<span class="st">"-"</span>):</span>
+<span id="cb17-30"><a href="#cb17-30" aria-hidden="true" tabindex="-1"></a>        orig_token_trips[token] <span class="op">=</span> orig_token_trips.get(token, <span class="dv">0</span>) <span class="op">+</span> row[<span class="st">"TOTAL_TRIPS"</span>]</span>
+<span id="cb17-31"><a href="#cb17-31" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb17-32"><a href="#cb17-32" aria-hidden="true" tabindex="-1"></a><span class="co"># map aggregated trip counts onto mrt_plot</span></span>
+<span id="cb17-33"><a href="#cb17-33" aria-hidden="true" tabindex="-1"></a>mrt_plot[<span class="st">"dest_trips"</span>] <span class="op">=</span> mrt_plot[<span class="st">"first_code"</span>].<span class="bu">map</span>(dest_token_trips).fillna(<span class="dv">0</span>)</span>
+<span id="cb17-34"><a href="#cb17-34" aria-hidden="true" tabindex="-1"></a>mrt_plot[<span class="st">"orig_trips"</span>] <span class="op">=</span> mrt_plot[<span class="st">"first_code"</span>].<span class="bu">map</span>(orig_token_trips).fillna(<span class="dv">0</span>)</span>
+<span id="cb17-35"><a href="#cb17-35" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb17-36"><a href="#cb17-36" aria-hidden="true" tabindex="-1"></a><span class="co"># deduplicate physical interchange points if mrt_wgs84 stores one row per line code</span></span>
+<span id="cb17-37"><a href="#cb17-37" aria-hidden="true" tabindex="-1"></a>stn_name_col <span class="op">=</span> <span class="bu">next</span>(</span>
+<span id="cb17-38"><a href="#cb17-38" aria-hidden="true" tabindex="-1"></a>    (c <span class="cf">for</span> c <span class="kw">in</span> [<span class="st">"station_name"</span>, <span class="st">"STN_NAME"</span>, <span class="st">"NAME"</span>, <span class="st">"name"</span>] <span class="cf">if</span> c <span class="kw">in</span> mrt_plot.columns),</span>
+<span id="cb17-39"><a href="#cb17-39" aria-hidden="true" tabindex="-1"></a>    <span class="va">None</span>,</span>
+<span id="cb17-40"><a href="#cb17-40" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb17-41"><a href="#cb17-41" aria-hidden="true" tabindex="-1"></a><span class="cf">if</span> stn_name_col:</span>
+<span id="cb17-42"><a href="#cb17-42" aria-hidden="true" tabindex="-1"></a>    mrt_plot <span class="op">=</span> (</span>
+<span id="cb17-43"><a href="#cb17-43" aria-hidden="true" tabindex="-1"></a>        mrt_plot.sort_values([<span class="st">"dest_trips"</span>, <span class="st">"orig_trips"</span>], ascending<span class="op">=</span><span class="va">False</span>)</span>
+<span id="cb17-44"><a href="#cb17-44" aria-hidden="true" tabindex="-1"></a>        .drop_duplicates(subset<span class="op">=</span>[stn_name_col])</span>
+<span id="cb17-45"><a href="#cb17-45" aria-hidden="true" tabindex="-1"></a>        .copy()</span>
+<span id="cb17-46"><a href="#cb17-46" aria-hidden="true" tabindex="-1"></a>    )</span>
+<span id="cb17-47"><a href="#cb17-47" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb17-48"><a href="#cb17-48" aria-hidden="true" tabindex="-1"></a><span class="co"># flipped color scales: light-to-deep blue for destinations, light-to-deep red for origins</span></span>
+<span id="cb17-49"><a href="#cb17-49" aria-hidden="true" tabindex="-1"></a>dest_max <span class="op">=</span> mrt_plot[<span class="st">"dest_trips"</span>].<span class="bu">max</span>()</span>
+<span id="cb17-50"><a href="#cb17-50" aria-hidden="true" tabindex="-1"></a>orig_max <span class="op">=</span> mrt_plot[<span class="st">"orig_trips"</span>].<span class="bu">max</span>()</span>
+<span id="cb17-51"><a href="#cb17-51" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb17-52"><a href="#cb17-52" aria-hidden="true" tabindex="-1"></a>dest_cmap <span class="op">=</span> cm.LinearColormap(</span>
+<span id="cb17-53"><a href="#cb17-53" aria-hidden="true" tabindex="-1"></a>    colors<span class="op">=</span>[<span class="st">"#caf0f8"</span>, <span class="st">"#48cae4"</span>, <span class="st">"#0096c7"</span>, <span class="st">"#1d4e89"</span>],</span>
+<span id="cb17-54"><a href="#cb17-54" aria-hidden="true" tabindex="-1"></a>    vmin<span class="op">=</span><span class="dv">0</span>,</span>
+<span id="cb17-55"><a href="#cb17-55" aria-hidden="true" tabindex="-1"></a>    vmax<span class="op">=</span>dest_max,</span>
+<span id="cb17-56"><a href="#cb17-56" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb17-57"><a href="#cb17-57" aria-hidden="true" tabindex="-1"></a>orig_cmap <span class="op">=</span> cm.LinearColormap(</span>
+<span id="cb17-58"><a href="#cb17-58" aria-hidden="true" tabindex="-1"></a>    colors<span class="op">=</span>[<span class="st">"#fff3b0"</span>, <span class="st">"#faa307"</span>, <span class="st">"#e85d04"</span>, <span class="st">"#9b2226"</span>],</span>
+<span id="cb17-59"><a href="#cb17-59" aria-hidden="true" tabindex="-1"></a>    vmin<span class="op">=</span><span class="dv">0</span>,</span>
+<span id="cb17-60"><a href="#cb17-60" aria-hidden="true" tabindex="-1"></a>    vmax<span class="op">=</span>orig_max,</span>
+<span id="cb17-61"><a href="#cb17-61" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb17-62"><a href="#cb17-62" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb17-63"><a href="#cb17-63" aria-hidden="true" tabindex="-1"></a><span class="co"># initialize Esri Dark Gray Base map centered on Singapore</span></span>
+<span id="cb17-64"><a href="#cb17-64" aria-hidden="true" tabindex="-1"></a>m_od_mrt <span class="op">=</span> folium.Map(</span>
+<span id="cb17-65"><a href="#cb17-65" aria-hidden="true" tabindex="-1"></a>    location<span class="op">=</span>[<span class="fl">1.3521</span>, <span class="fl">103.8198</span>],</span>
+<span id="cb17-66"><a href="#cb17-66" aria-hidden="true" tabindex="-1"></a>    zoom_start<span class="op">=</span><span class="fl">11.5</span>,</span>
+<span id="cb17-67"><a href="#cb17-67" aria-hidden="true" tabindex="-1"></a>    tiles<span class="op">=</span><span class="va">None</span>,</span>
+<span id="cb17-68"><a href="#cb17-68" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb17-69"><a href="#cb17-69" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb17-70"><a href="#cb17-70" aria-hidden="true" tabindex="-1"></a>folium.TileLayer(</span>
+<span id="cb17-71"><a href="#cb17-71" aria-hidden="true" tabindex="-1"></a>    tiles<span class="op">=</span><span class="st">"https://services.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Base/MapServer/tile/</span><span class="sc">{z}</span><span class="st">/</span><span class="sc">{y}</span><span class="st">/</span><span class="sc">{x}</span><span class="st">"</span>,</span>
+<span id="cb17-72"><a href="#cb17-72" aria-hidden="true" tabindex="-1"></a>    attr<span class="op">=</span><span class="st">"Esri, HERE, Garmin, © OpenStreetMap contributors, and the GIS User Community"</span>,</span>
+<span id="cb17-73"><a href="#cb17-73" aria-hidden="true" tabindex="-1"></a>    name<span class="op">=</span><span class="st">"Esri Dark Gray Base"</span>,</span>
+<span id="cb17-74"><a href="#cb17-74" aria-hidden="true" tabindex="-1"></a>    control<span class="op">=</span><span class="va">False</span>,</span>
+<span id="cb17-75"><a href="#cb17-75" aria-hidden="true" tabindex="-1"></a>).add_to(m_od_mrt)</span>
+<span id="cb17-76"><a href="#cb17-76" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb17-77"><a href="#cb17-77" aria-hidden="true" tabindex="-1"></a><span class="co"># layer for destination MRT stations colored and sized by total incoming nightlife trips</span></span>
+<span id="cb17-78"><a href="#cb17-78" aria-hidden="true" tabindex="-1"></a>dest_fg <span class="op">=</span> folium.FeatureGroup(name<span class="op">=</span><span class="st">"Destination MRTs (Alighting Trips)"</span>, show<span class="op">=</span><span class="va">True</span>)</span>
+<span id="cb17-79"><a href="#cb17-79" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb17-80"><a href="#cb17-80" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> _, row <span class="kw">in</span> mrt_plot.iterrows():</span>
+<span id="cb17-81"><a href="#cb17-81" aria-hidden="true" tabindex="-1"></a>    pt <span class="op">=</span> row.geometry.centroid</span>
+<span id="cb17-82"><a href="#cb17-82" aria-hidden="true" tabindex="-1"></a>    trips <span class="op">=</span> row[<span class="st">"dest_trips"</span>]</span>
+<span id="cb17-83"><a href="#cb17-83" aria-hidden="true" tabindex="-1"></a>    label <span class="op">=</span> <span class="ss">f"</span><span class="sc">{</span>row[<span class="st">'station_code'</span>]<span class="sc">}</span><span class="ss"> (</span><span class="sc">{</span>row[stn_name_col]<span class="sc">}</span><span class="ss">)"</span> <span class="cf">if</span> stn_name_col <span class="cf">else</span> row[<span class="st">"station_code"</span>]</span>
+<span id="cb17-84"><a href="#cb17-84" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb17-85"><a href="#cb17-85" aria-hidden="true" tabindex="-1"></a>    color <span class="op">=</span> dest_cmap(trips) <span class="cf">if</span> trips <span class="op">&gt;</span> <span class="dv">0</span> <span class="cf">else</span> <span class="st">"#4a4a4a"</span></span>
+<span id="cb17-86"><a href="#cb17-86" aria-hidden="true" tabindex="-1"></a>    radius <span class="op">=</span> <span class="dv">4</span> <span class="op">+</span> (<span class="dv">10</span> <span class="op">*</span> (trips <span class="op">/</span> dest_max) <span class="op">**</span> <span class="fl">0.5</span>) <span class="cf">if</span> trips <span class="op">&gt;</span> <span class="dv">0</span> <span class="cf">else</span> <span class="fl">3.5</span></span>
+<span id="cb17-87"><a href="#cb17-87" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb17-88"><a href="#cb17-88" aria-hidden="true" tabindex="-1"></a>    folium.CircleMarker(</span>
+<span id="cb17-89"><a href="#cb17-89" aria-hidden="true" tabindex="-1"></a>        location<span class="op">=</span>[pt.y, pt.x],</span>
+<span id="cb17-90"><a href="#cb17-90" aria-hidden="true" tabindex="-1"></a>        radius<span class="op">=</span>radius,</span>
+<span id="cb17-91"><a href="#cb17-91" aria-hidden="true" tabindex="-1"></a>        color<span class="op">=</span><span class="st">"#d9f0ff"</span> <span class="cf">if</span> trips <span class="op">&gt;</span> <span class="dv">0</span> <span class="cf">else</span> <span class="st">"#666666"</span>,</span>
+<span id="cb17-92"><a href="#cb17-92" aria-hidden="true" tabindex="-1"></a>        weight<span class="op">=</span><span class="dv">1</span> <span class="cf">if</span> trips <span class="op">&gt;</span> <span class="dv">0</span> <span class="cf">else</span> <span class="fl">0.5</span>,</span>
+<span id="cb17-93"><a href="#cb17-93" aria-hidden="true" tabindex="-1"></a>        fill<span class="op">=</span><span class="va">True</span>,</span>
+<span id="cb17-94"><a href="#cb17-94" aria-hidden="true" tabindex="-1"></a>        fill_color<span class="op">=</span>color,</span>
+<span id="cb17-95"><a href="#cb17-95" aria-hidden="true" tabindex="-1"></a>        fill_opacity<span class="op">=</span><span class="fl">0.9</span> <span class="cf">if</span> trips <span class="op">&gt;</span> <span class="dv">0</span> <span class="cf">else</span> <span class="fl">0.4</span>,</span>
+<span id="cb17-96"><a href="#cb17-96" aria-hidden="true" tabindex="-1"></a>        tooltip<span class="op">=</span><span class="ss">f"Destination: </span><span class="sc">{</span>label<span class="sc">}</span><span class="ss"> | </span><span class="sc">{</span><span class="bu">int</span>(trips)<span class="sc">:,}</span><span class="ss"> trips"</span>,</span>
+<span id="cb17-97"><a href="#cb17-97" aria-hidden="true" tabindex="-1"></a>        popup<span class="op">=</span>folium.Popup(</span>
+<span id="cb17-98"><a href="#cb17-98" aria-hidden="true" tabindex="-1"></a>            <span class="ss">f"&lt;b&gt;Destination MRT:&lt;/b&gt; </span><span class="sc">{</span>label<span class="sc">}</span><span class="ss">&lt;br&gt;"</span></span>
+<span id="cb17-99"><a href="#cb17-99" aria-hidden="true" tabindex="-1"></a>            <span class="ss">f"&lt;b&gt;Late-Night Alighting Trips (8pm–12am):&lt;/b&gt; </span><span class="sc">{</span><span class="bu">int</span>(trips)<span class="sc">:,}</span><span class="ss">"</span>,</span>
+<span id="cb17-100"><a href="#cb17-100" aria-hidden="true" tabindex="-1"></a>            max_width<span class="op">=</span><span class="dv">280</span>,</span>
+<span id="cb17-101"><a href="#cb17-101" aria-hidden="true" tabindex="-1"></a>        ),</span>
+<span id="cb17-102"><a href="#cb17-102" aria-hidden="true" tabindex="-1"></a>    ).add_to(dest_fg)</span>
+<span id="cb17-103"><a href="#cb17-103" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb17-104"><a href="#cb17-104" aria-hidden="true" tabindex="-1"></a>dest_fg.add_to(m_od_mrt)</span>
+<span id="cb17-105"><a href="#cb17-105" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb17-106"><a href="#cb17-106" aria-hidden="true" tabindex="-1"></a><span class="co"># layer for nightlife origin MRT stations colored and sized by total outgoing trips</span></span>
+<span id="cb17-107"><a href="#cb17-107" aria-hidden="true" tabindex="-1"></a>orig_fg <span class="op">=</span> folium.FeatureGroup(name<span class="op">=</span><span class="st">"Nightlife Origin MRTs (Boarding Trips)"</span>, show<span class="op">=</span><span class="va">True</span>)</span>
+<span id="cb17-108"><a href="#cb17-108" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb17-109"><a href="#cb17-109" aria-hidden="true" tabindex="-1"></a>origin_only_gdf <span class="op">=</span> mrt_plot[mrt_plot[<span class="st">"orig_trips"</span>] <span class="op">&gt;</span> <span class="dv">0</span>].sort_values(<span class="st">"orig_trips"</span>, ascending<span class="op">=</span><span class="va">True</span>)</span>
+<span id="cb17-110"><a href="#cb17-110" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb17-111"><a href="#cb17-111" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> _, row <span class="kw">in</span> origin_only_gdf.iterrows():</span>
+<span id="cb17-112"><a href="#cb17-112" aria-hidden="true" tabindex="-1"></a>    pt <span class="op">=</span> row.geometry.centroid</span>
+<span id="cb17-113"><a href="#cb17-113" aria-hidden="true" tabindex="-1"></a>    trips <span class="op">=</span> row[<span class="st">"orig_trips"</span>]</span>
+<span id="cb17-114"><a href="#cb17-114" aria-hidden="true" tabindex="-1"></a>    label <span class="op">=</span> <span class="ss">f"</span><span class="sc">{</span>row[<span class="st">'station_code'</span>]<span class="sc">}</span><span class="ss"> (</span><span class="sc">{</span>row[stn_name_col]<span class="sc">}</span><span class="ss">)"</span> <span class="cf">if</span> stn_name_col <span class="cf">else</span> row[<span class="st">"station_code"</span>]</span>
+<span id="cb17-115"><a href="#cb17-115" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb17-116"><a href="#cb17-116" aria-hidden="true" tabindex="-1"></a>    color <span class="op">=</span> orig_cmap(trips)</span>
+<span id="cb17-117"><a href="#cb17-117" aria-hidden="true" tabindex="-1"></a>    radius <span class="op">=</span> <span class="dv">7</span> <span class="op">+</span> (<span class="dv">11</span> <span class="op">*</span> (trips <span class="op">/</span> orig_max) <span class="op">**</span> <span class="fl">0.5</span>)</span>
+<span id="cb17-118"><a href="#cb17-118" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb17-119"><a href="#cb17-119" aria-hidden="true" tabindex="-1"></a>    folium.CircleMarker(</span>
+<span id="cb17-120"><a href="#cb17-120" aria-hidden="true" tabindex="-1"></a>        location<span class="op">=</span>[pt.y, pt.x],</span>
+<span id="cb17-121"><a href="#cb17-121" aria-hidden="true" tabindex="-1"></a>        radius<span class="op">=</span>radius,</span>
+<span id="cb17-122"><a href="#cb17-122" aria-hidden="true" tabindex="-1"></a>        color<span class="op">=</span><span class="st">"#ffffff"</span>,</span>
+<span id="cb17-123"><a href="#cb17-123" aria-hidden="true" tabindex="-1"></a>        weight<span class="op">=</span><span class="dv">2</span>,</span>
+<span id="cb17-124"><a href="#cb17-124" aria-hidden="true" tabindex="-1"></a>        fill<span class="op">=</span><span class="va">True</span>,</span>
+<span id="cb17-125"><a href="#cb17-125" aria-hidden="true" tabindex="-1"></a>        fill_color<span class="op">=</span>color,</span>
+<span id="cb17-126"><a href="#cb17-126" aria-hidden="true" tabindex="-1"></a>        fill_opacity<span class="op">=</span><span class="fl">0.95</span>,</span>
+<span id="cb17-127"><a href="#cb17-127" aria-hidden="true" tabindex="-1"></a>        tooltip<span class="op">=</span><span class="ss">f"Nightlife Origin: </span><span class="sc">{</span>label<span class="sc">}</span><span class="ss"> | </span><span class="sc">{</span><span class="bu">int</span>(trips)<span class="sc">:,}</span><span class="ss"> trips"</span>,</span>
+<span id="cb17-128"><a href="#cb17-128" aria-hidden="true" tabindex="-1"></a>        popup<span class="op">=</span>folium.Popup(</span>
+<span id="cb17-129"><a href="#cb17-129" aria-hidden="true" tabindex="-1"></a>            <span class="ss">f"&lt;b&gt;Nightlife Origin MRT:&lt;/b&gt; </span><span class="sc">{</span>label<span class="sc">}</span><span class="ss">&lt;br&gt;"</span></span>
+<span id="cb17-130"><a href="#cb17-130" aria-hidden="true" tabindex="-1"></a>            <span class="ss">f"&lt;b&gt;Late-Night Boarding Trips (8pm–12am):&lt;/b&gt; </span><span class="sc">{</span><span class="bu">int</span>(trips)<span class="sc">:,}</span><span class="ss">"</span>,</span>
+<span id="cb17-131"><a href="#cb17-131" aria-hidden="true" tabindex="-1"></a>            max_width<span class="op">=</span><span class="dv">280</span>,</span>
+<span id="cb17-132"><a href="#cb17-132" aria-hidden="true" tabindex="-1"></a>        ),</span>
+<span id="cb17-133"><a href="#cb17-133" aria-hidden="true" tabindex="-1"></a>    ).add_to(orig_fg)</span>
+<span id="cb17-134"><a href="#cb17-134" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb17-135"><a href="#cb17-135" aria-hidden="true" tabindex="-1"></a>orig_fg.add_to(m_od_mrt)</span>
+<span id="cb17-136"><a href="#cb17-136" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb17-137"><a href="#cb17-137" aria-hidden="true" tabindex="-1"></a><span class="co"># add layer control so origin and destination layers can be toggled</span></span>
+<span id="cb17-138"><a href="#cb17-138" aria-hidden="true" tabindex="-1"></a>folium.LayerControl(position<span class="op">=</span><span class="st">"bottomright"</span>, collapsed<span class="op">=</span><span class="va">False</span>).add_to(m_od_mrt)</span>
+<span id="cb17-139"><a href="#cb17-139" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb17-140"><a href="#cb17-140" aria-hidden="true" tabindex="-1"></a><span class="co"># add floating map title</span></span>
+<span id="cb17-141"><a href="#cb17-141" aria-hidden="true" tabindex="-1"></a>title_html <span class="op">=</span> <span class="st">"""</span></span>
+<span id="cb17-142"><a href="#cb17-142" aria-hidden="true" tabindex="-1"></a><span class="st">&lt;div style="position: fixed; top: 15px; left: 55px; z-index: 9999;</span></span>
+<span id="cb17-143"><a href="#cb17-143" aria-hidden="true" tabindex="-1"></a><span class="st">            background: rgba(20, 20, 20, 0.92); color: #f0f0f0; padding: 10px 16px;</span></span>
+<span id="cb17-144"><a href="#cb17-144" aria-hidden="true" tabindex="-1"></a><span class="st">            border: 1px solid #555; border-radius: 6px;</span></span>
+<span id="cb17-145"><a href="#cb17-145" aria-hidden="true" tabindex="-1"></a><span class="st">            box-shadow: 0 2px 6px rgba(0,0,0,0.5);"&gt;</span></span>
+<span id="cb17-146"><a href="#cb17-146" aria-hidden="true" tabindex="-1"></a><span class="st">  &lt;div style="font-size: 15px; font-weight: 700; letter-spacing: 0.2px;"&gt;</span></span>
+<span id="cb17-147"><a href="#cb17-147" aria-hidden="true" tabindex="-1"></a><span class="st">    Top Origins and Destinations from Top 7 Nightlife Clusters in Singapore</span></span>
+<span id="cb17-148"><a href="#cb17-148" aria-hidden="true" tabindex="-1"></a><span class="st">  &lt;/div&gt;</span></span>
+<span id="cb17-149"><a href="#cb17-149" aria-hidden="true" tabindex="-1"></a><span class="st">  &lt;div style="font-size: 11px; color: #bbbbbb; margin-top: 2px;"&gt;</span></span>
+<span id="cb17-150"><a href="#cb17-150" aria-hidden="true" tabindex="-1"></a><span class="st">    LTA DataMall MRT Passenger Volume (October 2026, 8:00 PM – 12:00 AM)</span></span>
+<span id="cb17-151"><a href="#cb17-151" aria-hidden="true" tabindex="-1"></a><span class="st">  &lt;/div&gt;</span></span>
+<span id="cb17-152"><a href="#cb17-152" aria-hidden="true" tabindex="-1"></a><span class="st">&lt;/div&gt;</span></span>
+<span id="cb17-153"><a href="#cb17-153" aria-hidden="true" tabindex="-1"></a><span class="st">"""</span></span>
+<span id="cb17-154"><a href="#cb17-154" aria-hidden="true" tabindex="-1"></a>m_od_mrt.get_root().html.add_child(folium.Element(title_html))</span>
+<span id="cb17-155"><a href="#cb17-155" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb17-156"><a href="#cb17-156" aria-hidden="true" tabindex="-1"></a><span class="co"># add collapsible legend box with toggle button</span></span>
+<span id="cb17-157"><a href="#cb17-157" aria-hidden="true" tabindex="-1"></a>legend_html <span class="op">=</span> <span class="ss">f"""</span></span>
+<span id="cb17-158"><a href="#cb17-158" aria-hidden="true" tabindex="-1"></a><span class="ss">&lt;div id="od-legend-box" style="position: fixed; bottom: 30px; left: 30px; z-index: 9999;</span></span>
+<span id="cb17-159"><a href="#cb17-159" aria-hidden="true" tabindex="-1"></a><span class="ss">            background: rgba(20, 20, 20, 0.92); color: #f0f0f0; padding: 10px 14px;</span></span>
+<span id="cb17-160"><a href="#cb17-160" aria-hidden="true" tabindex="-1"></a><span class="ss">            border: 1px solid #555; border-radius: 6px; font-size: 12px;</span></span>
+<span id="cb17-161"><a href="#cb17-161" aria-hidden="true" tabindex="-1"></a><span class="ss">            box-shadow: 0 2px 6px rgba(0,0,0,0.5); max-width: 280px;"&gt;</span></span>
+<span id="cb17-162"><a href="#cb17-162" aria-hidden="true" tabindex="-1"></a><span class="ss">  &lt;div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;"&gt;</span></span>
+<span id="cb17-163"><a href="#cb17-163" aria-hidden="true" tabindex="-1"></a><span class="ss">    &lt;b&gt;Late-Night MRT O–D Volume (8pm–12am)&lt;/b&gt;</span></span>
+<span id="cb17-164"><a href="#cb17-164" aria-hidden="true" tabindex="-1"></a><span class="ss">    &lt;button onclick="var body = document.getElementById('od-legend-body');</span></span>
+<span id="cb17-165"><a href="#cb17-165" aria-hidden="true" tabindex="-1"></a><span class="ss">                     if (body.style.display === 'none') </span><span class="ch">{{</span><span class="ss"> body.style.display = 'block'; this.innerText = 'Hide'; </span><span class="ch">}}</span></span>
+<span id="cb17-166"><a href="#cb17-166" aria-hidden="true" tabindex="-1"></a><span class="ss">                     else </span><span class="ch">{{</span><span class="ss"> body.style.display = 'none'; this.innerText = 'Show'; </span><span class="ch">}}</span><span class="ss">"</span></span>
+<span id="cb17-167"><a href="#cb17-167" aria-hidden="true" tabindex="-1"></a><span class="ss">            style="background: #333; color: #fff; border: 1px solid #666; border-radius: 4px;</span></span>
+<span id="cb17-168"><a href="#cb17-168" aria-hidden="true" tabindex="-1"></a><span class="ss">                   padding: 2px 6px; font-size: 11px; cursor: pointer; margin-left: 8px;"&gt;</span></span>
+<span id="cb17-169"><a href="#cb17-169" aria-hidden="true" tabindex="-1"></a><span class="ss">      Hide</span></span>
+<span id="cb17-170"><a href="#cb17-170" aria-hidden="true" tabindex="-1"></a><span class="ss">    &lt;/button&gt;</span></span>
+<span id="cb17-171"><a href="#cb17-171" aria-hidden="true" tabindex="-1"></a><span class="ss">  &lt;/div&gt;</span></span>
+<span id="cb17-172"><a href="#cb17-172" aria-hidden="true" tabindex="-1"></a><span class="ss">  &lt;div id="od-legend-body"&gt;</span></span>
+<span id="cb17-173"><a href="#cb17-173" aria-hidden="true" tabindex="-1"></a><span class="ss">    &lt;div style="margin-top: 6px;"&gt;&lt;b&gt;Destination MRTs (Alighting Trips)&lt;/b&gt;&lt;/div&gt;</span></span>
+<span id="cb17-174"><a href="#cb17-174" aria-hidden="true" tabindex="-1"></a><span class="ss">    &lt;div style="height: 10px; width: 100%; border-radius: 3px; margin: 4px 0;</span></span>
+<span id="cb17-175"><a href="#cb17-175" aria-hidden="true" tabindex="-1"></a><span class="ss">                background: linear-gradient(to right, #caf0f8, #48cae4, #0096c7, #1d4e89);"&gt;&lt;/div&gt;</span></span>
+<span id="cb17-176"><a href="#cb17-176" aria-hidden="true" tabindex="-1"></a><span class="ss">    &lt;div style="display: flex; justify-content: space-between; font-size: 11px; color: #ccc;"&gt;</span></span>
+<span id="cb17-177"><a href="#cb17-177" aria-hidden="true" tabindex="-1"></a><span class="ss">      &lt;span&gt;1&lt;/span&gt;</span></span>
+<span id="cb17-178"><a href="#cb17-178" aria-hidden="true" tabindex="-1"></a><span class="ss">      &lt;span&gt;</span><span class="sc">{</span><span class="bu">int</span>(dest_max)<span class="sc">:,}</span><span class="ss"> trips&lt;/span&gt;</span></span>
+<span id="cb17-179"><a href="#cb17-179" aria-hidden="true" tabindex="-1"></a><span class="ss">    &lt;/div&gt;</span></span>
+<span id="cb17-180"><a href="#cb17-180" aria-hidden="true" tabindex="-1"></a><span class="ss">    &lt;div style="font-size: 11px; color: #999; margin-top: 2px;"&gt;</span></span>
+<span id="cb17-181"><a href="#cb17-181" aria-hidden="true" tabindex="-1"></a><span class="ss">      &lt;span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:#4a4a4a;margin-right:5px;"&gt;&lt;/span&gt;0 trips</span></span>
+<span id="cb17-182"><a href="#cb17-182" aria-hidden="true" tabindex="-1"></a><span class="ss">    &lt;/div&gt;</span></span>
+<span id="cb17-183"><a href="#cb17-183" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb17-184"><a href="#cb17-184" aria-hidden="true" tabindex="-1"></a><span class="ss">    &lt;div style="margin-top: 10px;"&gt;&lt;b&gt;Nightlife Origin MRTs (Boarding Trips)&lt;/b&gt;&lt;/div&gt;</span></span>
+<span id="cb17-185"><a href="#cb17-185" aria-hidden="true" tabindex="-1"></a><span class="ss">    &lt;div style="height: 10px; width: 100%; border-radius: 3px; margin: 4px 0;</span></span>
+<span id="cb17-186"><a href="#cb17-186" aria-hidden="true" tabindex="-1"></a><span class="ss">                background: linear-gradient(to right, #fff3b0, #faa307, #e85d04, #9b2226);"&gt;&lt;/div&gt;</span></span>
+<span id="cb17-187"><a href="#cb17-187" aria-hidden="true" tabindex="-1"></a><span class="ss">    &lt;div style="display: flex; justify-content: space-between; font-size: 11px; color: #ccc;"&gt;</span></span>
+<span id="cb17-188"><a href="#cb17-188" aria-hidden="true" tabindex="-1"></a><span class="ss">      &lt;span&gt;Low&lt;/span&gt;</span></span>
+<span id="cb17-189"><a href="#cb17-189" aria-hidden="true" tabindex="-1"></a><span class="ss">      &lt;span&gt;</span><span class="sc">{</span><span class="bu">int</span>(orig_max)<span class="sc">:,}</span><span class="ss"> trips&lt;/span&gt;</span></span>
+<span id="cb17-190"><a href="#cb17-190" aria-hidden="true" tabindex="-1"></a><span class="ss">    &lt;/div&gt;</span></span>
+<span id="cb17-191"><a href="#cb17-191" aria-hidden="true" tabindex="-1"></a><span class="ss">    &lt;div style="font-size: 11px; color: #aaa; margin-top: 4px;"&gt;</span></span>
+<span id="cb17-192"><a href="#cb17-192" aria-hidden="true" tabindex="-1"></a><span class="ss">      *Circle area is proportional to total trips; white-ringed circles indicate nightlife origin stations.</span></span>
+<span id="cb17-193"><a href="#cb17-193" aria-hidden="true" tabindex="-1"></a><span class="ss">    &lt;/div&gt;</span></span>
+<span id="cb17-194"><a href="#cb17-194" aria-hidden="true" tabindex="-1"></a><span class="ss">  &lt;/div&gt;</span></span>
+<span id="cb17-195"><a href="#cb17-195" aria-hidden="true" tabindex="-1"></a><span class="ss">&lt;/div&gt;</span></span>
+<span id="cb17-196"><a href="#cb17-196" aria-hidden="true" tabindex="-1"></a><span class="ss">"""</span></span>
+<span id="cb17-197"><a href="#cb17-197" aria-hidden="true" tabindex="-1"></a>m_od_mrt.get_root().html.add_child(folium.Element(legend_html))</span>
+<span id="cb17-198"><a href="#cb17-198" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb17-199"><a href="#cb17-199" aria-hidden="true" tabindex="-1"></a>m_od_mrt</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </details>
 <div class="cell-output cell-output-display" data-execution_count="48">
 <div style="width:100%;"><div style="position:relative;width:100%;height:0;padding-bottom:60%;"><span style="color:#565656">Make this Notebook Trusted to load map: File -&gt; Trust Notebook</span><iframe srcdoc="<!DOCTYPE html>
@@ -9929,154 +9936,9 @@ Filtered 8pm–12am rows for nightlife origin stations: 13,405</code></pre>
 </html>" style="position:absolute;width:100%;height:100%;left:0;top:0;border:none !important;" allowfullscreen="" webkitallowfullscreen="" mozallowfullscreen=""></iframe></div></div>
 </div>
 </div>
-<p>The table below is the Top 10 highest O-D pairs from 6pm to 12am in October 2026. I did not filter for just the nightlife-serving MRTs so that we could get a wider picture of transit patterns at night, and see any details lost.</p>
-<div id="cell-21" class="cell" data-execution_count="47">
-<details class="code-fold">
-<summary>Show code</summary>
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb17"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb17-1"><a href="#cb17-1" aria-hidden="true" tabindex="-1"></a>od_nightlife_late_sorted <span class="op">=</span> od_nightlife_late.sort_values(</span>
-<span id="cb17-2"><a href="#cb17-2" aria-hidden="true" tabindex="-1"></a>    by<span class="op">=</span><span class="st">"TOTAL_TRIPS"</span>, ascending<span class="op">=</span><span class="va">False</span></span>
-<span id="cb17-3"><a href="#cb17-3" aria-hidden="true" tabindex="-1"></a>).reset_index(drop<span class="op">=</span><span class="va">True</span>)</span>
-<span id="cb17-4"><a href="#cb17-4" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb17-5"><a href="#cb17-5" aria-hidden="true" tabindex="-1"></a>od_nightlife_late_sorted.head(<span class="dv">10</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
-</details>
-<div class="cell-output cell-output-display" data-execution_count="47">
-<div>
-
-
-<table class="dataframe caption-top table table-sm table-striped small" data-border="1">
-<thead>
-<tr class="header">
-<th data-quarto-table-cell-role="th"></th>
-<th data-quarto-table-cell-role="th">YEAR_MONTH</th>
-<th data-quarto-table-cell-role="th">DAY_TYPE</th>
-<th data-quarto-table-cell-role="th">TIME_PER_HOUR</th>
-<th data-quarto-table-cell-role="th">PT_TYPE</th>
-<th data-quarto-table-cell-role="th">ORIGIN_PT_CODE</th>
-<th data-quarto-table-cell-role="th">DESTINATION_PT_CODE</th>
-<th data-quarto-table-cell-role="th">TOTAL_TRIPS</th>
-<th data-quarto-table-cell-role="th">origin_cluster_id</th>
-</tr>
-</thead>
-<tbody>
-<tr class="odd">
-<th data-quarto-table-cell-role="th">0</th>
-<td>2026-10</td>
-<td>WEEKDAY</td>
-<td>20</td>
-<td>TRAIN</td>
-<td>DT13</td>
-<td>NS21/DT11</td>
-<td>2704</td>
-<td>1</td>
-</tr>
-<tr class="even">
-<th data-quarto-table-cell-role="th">1</th>
-<td>2026-10</td>
-<td>WEEKDAY</td>
-<td>20</td>
-<td>TRAIN</td>
-<td>TE26</td>
-<td>TE27</td>
-<td>2373</td>
-<td>5</td>
-</tr>
-<tr class="odd">
-<th data-quarto-table-cell-role="th">2</th>
-<td>2026-10</td>
-<td>WEEKENDS/HOLIDAY</td>
-<td>20</td>
-<td>TRAIN</td>
-<td>DT22</td>
-<td>DT28</td>
-<td>2249</td>
-<td>1</td>
-</tr>
-<tr class="even">
-<th data-quarto-table-cell-role="th">3</th>
-<td>2026-10</td>
-<td>WEEKENDS/HOLIDAY</td>
-<td>21</td>
-<td>TRAIN</td>
-<td>DT22</td>
-<td>DT28</td>
-<td>2159</td>
-<td>1</td>
-</tr>
-<tr class="odd">
-<th data-quarto-table-cell-role="th">4</th>
-<td>2026-10</td>
-<td>WEEKDAY</td>
-<td>21</td>
-<td>TRAIN</td>
-<td>DT13</td>
-<td>NS21/DT11</td>
-<td>2053</td>
-<td>1</td>
-</tr>
-<tr class="even">
-<th data-quarto-table-cell-role="th">5</th>
-<td>2026-10</td>
-<td>WEEKDAY</td>
-<td>20</td>
-<td>TRAIN</td>
-<td>TE26</td>
-<td>TE28</td>
-<td>2053</td>
-<td>5</td>
-</tr>
-<tr class="odd">
-<th data-quarto-table-cell-role="th">6</th>
-<td>2026-10</td>
-<td>WEEKDAY</td>
-<td>21</td>
-<td>TRAIN</td>
-<td>DT21</td>
-<td>DT33</td>
-<td>1967</td>
-<td>1</td>
-</tr>
-<tr class="even">
-<th data-quarto-table-cell-role="th">7</th>
-<td>2026-10</td>
-<td>WEEKDAY</td>
-<td>21</td>
-<td>TRAIN</td>
-<td>DT22</td>
-<td>DT28</td>
-<td>1865</td>
-<td>1</td>
-</tr>
-<tr class="odd">
-<th data-quarto-table-cell-role="th">8</th>
-<td>2026-10</td>
-<td>WEEKDAY</td>
-<td>20</td>
-<td>TRAIN</td>
-<td>DT22</td>
-<td>DT28</td>
-<td>1790</td>
-<td>1</td>
-</tr>
-<tr class="even">
-<th data-quarto-table-cell-role="th">9</th>
-<td>2026-10</td>
-<td>WEEKDAY</td>
-<td>20</td>
-<td>TRAIN</td>
-<td>NE5</td>
-<td>NE12/CC13</td>
-<td>1782</td>
-<td>0</td>
-</tr>
-</tbody>
-</table>
-
-</div>
-</div>
-</div>
 <p>The map highlights quite interesting patterns.</p>
 <ol type="1">
-<li><strong>Origins</strong>: The most number of trips emerge from NE5 (Clarke Quay), with 122,873 out of 759,721 trips made in Oct 2026. This verifies how Clarke Quay is responsible for most of (17%) of Singapore’s nightlife! DT23 (Bendemeer) is responsible for the least number of trips. Looking at the previous map above, it quite poorly serves Cluster 6 because it sits along the edge of the cluster; patrons might opt for other closer MRT stations, or rely on bus/ride-hail alternatives (<em>this is verified by the table above: Row 0 shows the most popular trip is from DT13 Rochor, which sits right outside Cluster 6 and hence was filtered out from our nightlife mrt dataset. In the future maybe a buffer around clusters could be made so it encapsulates all nearby MRT stations</em>)</li>
+<li><strong>Origins</strong>: The most number of trips emerge from NE5 (Clarke Quay), with 122,873 out of 759,721 trips made in Oct 2026. This verifies how Clarke Quay is responsible for most of (17%) of Singapore’s nightlife, and is part of the largest Cluster 0. DT23 (Bendemeer) is responsible for the least number of trips. Looking at the previous map above, it quite poorly serves Cluster 6 because it sits along the edge of the cluster; patrons might opt for other closer MRT stations, or rely on bus/ride-hail alternatives</li>
 </ol>
 <p>What’s to be noted is that government authorities trialed <a href="https://www.channelnewsasia.com/singapore/boat-clarke-quay-alcohol-liquor-hours-4am-6323531">extended liquor sales</a> in Clarke Quay till 4am, which was formalized August of this year. This has definitely increased traffic in the area late at night which also could be better supported with extended transit hours from this destination.</p>
 <ol start="2" type="1">
